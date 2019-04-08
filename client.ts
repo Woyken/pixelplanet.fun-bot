@@ -7,41 +7,113 @@ import { timeoutFor } from "./timeoutHelper";
 
 const Dither = require("image-dither");
 
-const chunks = new ChunkCache();
+let chunks = new ChunkCache();
 
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
 });
 
-async function start() {
-    const xLeftMost = await readNumber("TopLeft x: ");
-    const yTopMost = await readNumber("TopLeft y: ");
-    const imgPath = await readString("Path to an image: ");
-    const ditherAnswer = await readString("Dither the image? [default=y] (y/n): ").then((a) => a.toLowerCase() === "y" || !a);
-    const fingerprint = await readString("Your fingerprint: ").then((a) => a || "aba2d6b6b48e0609bf63dae8a6f6d985");
-    const multipleMachines = await readString("Running on multiple machines? [default=n] (y/n): ").then((a) => a.toLowerCase() === "y");
-    let machineCount: number = 1;
-    let machineId: number = 0;
-    if (multipleMachines) {
-        machineCount = await readNumber("Machine count: ").then((a) => {
-            if (a < 0) {
-                throw new Error(`Invalid machine count, must be above 0`);
-            }
-            return a;
-        });
-        machineId = await readNumber(`This machine ID (0-${machineCount - 1}): `).then((a) => {
-            if (a < 0 || a >= machineCount) {
-                throw new Error(`Invalid machine id, must be from 0 to ${machineCount - 1}`);
-            }
-            return a;
-        });
+async function startAndGetUserInput() {
+    const args = process.argv.slice(2);
+
+    let xLeftMost: number;
+    if (args[0]) {
+        xLeftMost = parseInt(args[0], 10);
+        // tslint:disable-next-line: no-console
+        console.log("x=" + xLeftMost);
+    } else {
+        xLeftMost = await readNumber("TopLeft x: ");
     }
+
+    let yTopMost: number;
+    if (args[1]) {
+        yTopMost = parseInt(args[1], 10);
+        // tslint:disable-next-line: no-console
+        console.log("y=" + yTopMost);
+    } else {
+        yTopMost = await readNumber("TopLeft y: ");
+    }
+
+    let imgPath: string;
+    if (args[2]) {
+        imgPath = args[2];
+        // tslint:disable-next-line: no-console
+        console.log("imgPath=" + imgPath);
+    } else {
+        imgPath = await readString("Path to an image: ");
+    }
+
+    let ditherTheImageAnswer: string;
+    if (args[3]) {
+        ditherTheImageAnswer = args[3];
+        // tslint:disable-next-line: no-console
+        console.log("Dither the image=" + ditherTheImageAnswer);
+    } else {
+        ditherTheImageAnswer = await readString("Dither the image? [default=y] (y/n): ");
+    }
+    const ditherTheImage: boolean = ditherTheImageAnswer.toLowerCase() === "y" || !ditherTheImageAnswer;
+
+    let fingerprint: string;
+    if (args[4]) {
+        fingerprint = args[4];
+        // tslint:disable-next-line: no-console
+        console.log("fingerprint=" + fingerprint);
+    } else {
+        fingerprint = await readString("Your fingerprint: ").then((a) => a || "aba2d6b6b48e0609bf63dae8a6f6d985");
+    }
+
+    let multipleMachines: boolean;
+    if (args[5]) {
+        multipleMachines = true;
+    } else {
+        multipleMachines = await readString("Running on multiple machines? [default=n] (y/n): ").then((a) => a.toLowerCase() === "y");
+    }
+
+    let machineCount: number = 1;
+    if (args[5]) {
+        machineCount = parseInt(args[5], 10);
+        // tslint:disable-next-line: no-console
+        console.log("machineCount=" + machineCount);
+    } else if (multipleMachines) {
+        machineCount = await readNumber("Machine count: ");
+    }
+
+    if (machineCount < 0) {
+        throw new Error(`Invalid machine count, must be above 0`);
+    }
+
+    let machineId: number = 0;
+    if (args[6]) {
+        machineId = parseInt(args[6], 10);
+        // tslint:disable-next-line: no-console
+        console.log("machineId=" + machineId);
+    } else if (multipleMachines) {
+        machineId = await readNumber("Machine ID: ");
+    }
+
+    if (machineId < 0 || machineId >= machineCount) {
+        throw new Error(`Invalid machine id, must be from 0 to ${machineCount - 1}`);
+    }
+
+    let constantWatchAnswer: string;
+    if (args[7]) {
+        constantWatchAnswer = args[7];
+        // tslint:disable-next-line: no-console
+        console.log("constantWatch=" + constantWatchAnswer);
+    } else {
+        constantWatchAnswer = await readString("Continue watching for changes (grief fix mode)? [default=n] (y/n): ");
+    }
+    const constantWatch: boolean = constantWatchAnswer.toLowerCase() === "y";
+
+    return start(xLeftMost, yTopMost, imgPath, ditherTheImage, fingerprint, machineCount, machineId, constantWatch);
+}
+async function start(xLeftMost: number, yTopMost: number, imgPath: string, ditherTheImage: boolean, fingerprint: string, machineCount: number, machineId: number, constantWatch: boolean) {
     fs.createReadStream(imgPath)
     .pipe(new PNG())
     .on("parsed", async function(this: PNG) {
 
-        if (ditherAnswer) {
+        if (ditherTheImage) {
             /* matrices available to use.
             Dither.matrices.atkinson
             Dither.matrices.burkes
@@ -124,8 +196,17 @@ async function start() {
                 }
             }
         }
-        // tslint:disable-next-line: no-console
-        console.log("all done!");
+        if (constantWatch) {
+            // tslint:disable-next-line: no-console
+            console.log("job done. Waiting for 5 minutes, will check again.");
+            setTimeout(() => {
+                chunks = new ChunkCache();
+                start(xLeftMost, yTopMost, imgPath, ditherTheImage, fingerprint, machineCount, machineId, constantWatch);
+            }, 300000);
+        } else {
+            // tslint:disable-next-line: no-console
+            console.log("all done!");
+        }
     });
 }
 
@@ -154,7 +235,7 @@ async function readString(question: string): Promise<string> {
     return promise;
 }
 
-start().then(() => {
+startAndGetUserInput().then(() => {
     rl.close();
 }).catch(() => {
     rl.close();
