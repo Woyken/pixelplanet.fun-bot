@@ -3,6 +3,7 @@ import { PNG } from "pngjs";
 import readline from "readline";
 import { ChunkCache } from "./chunkCache";
 import colorConverter from "./colorConverter";
+import { Guid } from "./guid";
 import { timeoutFor } from "./timeoutHelper";
 
 const Dither = require("image-dither");
@@ -57,11 +58,11 @@ async function startAndGetUserInput() {
     let fingerprint: string;
     if (args[4]) {
         fingerprint = args[4];
-        // tslint:disable-next-line: no-console
-        console.log("fingerprint=" + fingerprint);
     } else {
-        fingerprint = await readString("Your fingerprint: ").then((a) => a || "aba2d6b6b48e0609bf63dae8a6f6d985");
+        fingerprint = await readString("Your fingerprint: ").then((a) => a || Guid.newGuid());
     }
+    // tslint:disable-next-line: no-console
+    console.log("fingerprint=" + fingerprint);
 
     let multipleMachines: boolean;
     if (args[5]) {
@@ -158,7 +159,6 @@ async function start(xLeftMost: number, yTopMost: number, imgPath: string, dithe
             }
             this.pack().pipe(fs.createWriteStream("expectedOutput.png"));
         }
-
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 // For multiple machines:
