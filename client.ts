@@ -4,9 +4,11 @@ import readline from "readline";
 import { ChunkCache } from "./chunkCache";
 import colorConverter from "./colorConverter";
 import { Guid } from "./guid";
+import { ImageProcessor } from "./imageProcessor";
 import { timeoutFor } from "./timeoutHelper";
 import userInput, { IProgramParameters } from "./userInput";
 
+// tslint:disable-next-line: no-var-requires
 const Dither = require("image-dither");
 
 let chunks = new ChunkCache();
@@ -26,6 +28,8 @@ async function start(params: IProgramParameters) {
     fs.createReadStream(params.imgPath)
     .pipe(new PNG())
     .on("parsed", async function(this: PNG) {
+        // Create image processor, initialize edges before preprocessing image
+        const imgProcessor = new ImageProcessor(this);
 
         if (params.ditherTheImage) {
             // Dither the image (makes photos look better, more realistic with color depth)
@@ -43,7 +47,7 @@ async function start(params: IProgramParameters) {
             */
             const options = {
                 findColor: (channelArray: [number, number, number, number]) => {
-                    const convertedColor = colorConverter.convertActualColor(channelArray[0], channelArray[1], channelArray[2])
+                    const convertedColor = colorConverter.convertActualColor(channelArray[0], channelArray[1], channelArray[2]);
                     const resultArr = colorConverter.getActualColor(convertedColor);
                     resultArr.push(channelArray[3]);
                     return resultArr;
@@ -74,8 +78,14 @@ async function start(params: IProgramParameters) {
             }
             this.pack().pipe(fs.createWriteStream("expectedOutput.png"));
         }
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
+
+        for (let i = 255; i >= 0; i = i - 5) {
+            const currentorkingList = imgProcessor.getIncrementalEdges(i, i + 5);
+            while (currentorkingList.length > 0) {
+                const currentTargetCoords = currentorkingList.pop();
+                const x = currentTargetCoords!.x;
+                const y = currentTargetCoords!.y;
+
                 // For multiple machines:
                 const cordId = x + y * this.width;
                 if ((cordId + params.machineId + 1) % params.machineCount === 0) {
@@ -106,7 +116,10 @@ async function start(params: IProgramParameters) {
                     // tslint:disable-next-line: no-console
                     console.log("Just placed " + targetColor + " at " + targetPixel.x + ":" + targetPixel.y);
                     if (postPixelResult.waitSeconds > 50) {
-                        await timeoutFor((postPixelResult.waitSeconds - Math.random() * 45) * 1000);
+                        const waitingFor = postPixelResult.waitSeconds - Math.random() * 45;
+                        // tslint:disable-next-line: no-console
+                        console.log("Waiting for: " + waitingFor + " seconds");
+                        await timeoutFor((waitingFor) * 1000);
                     }
                 }
             }
