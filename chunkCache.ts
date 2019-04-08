@@ -12,7 +12,7 @@ export class ChunkCache {
         const chunkY = Math.floor(y / 256);
         const cachedChunkId = chunkX + chunkY * 256;
         if (!this.cachedChunks[cachedChunkId]) {
-            this.cachedChunks[cachedChunkId] = await this.fetchChunkData(chunkX, chunkY);
+            this.cachedChunks[cachedChunkId] = await this.retryfetchChunkData(chunkX, chunkY);
         }
 
         const xPixelInChunk = x % 256;
@@ -112,7 +112,11 @@ export class ChunkCache {
             console.log("Chunk gathering responded with " + resp.statusText);
             throw new Error("response did not succeed");
         } else {
-            const buffer = new Buffer(resp.data);
+            if (resp.data === "") {
+                // this means chunk is completely empty.
+                return Buffer.alloc(256 * 256, 0);
+            }
+            const buffer = Buffer.from(resp.data);
             return buffer;
         }
     }
