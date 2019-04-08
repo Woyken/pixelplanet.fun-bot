@@ -49,6 +49,8 @@ async function start() {
                 }
             }
         }
+        // tslint:disable-next-line: no-console
+        console.log("all done!");
     });
 }
 
@@ -77,6 +79,8 @@ async function readString(question: string): Promise<string> {
     return promise;
 }
 
-start().catch(() => {
+start().then(() => {
+    rl.close();
+}).catch(() => {
     rl.close();
 });
