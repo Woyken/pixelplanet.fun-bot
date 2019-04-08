@@ -15,12 +15,28 @@ const rl = readline.createInterface({
 });
 
 async function start() {
-    const xLeftMost = await readNumber("TopLeft x:");
-    const yTopMost = await readNumber("TopLeft y:");
-    const imgPath = await readString("Path to an image:");
-    const ditherAnswer = await readString("Dither the image? [default=y] (y/n):").then((a) => a === "y" || a === "Y" || !a);
-    const fingerprint = await readString("Your fingerprint:").catch(() => "aba2d6b6b48e0609bf63dae8a6f6d985");
-
+    const xLeftMost = await readNumber("TopLeft x: ");
+    const yTopMost = await readNumber("TopLeft y: ");
+    const imgPath = await readString("Path to an image: ");
+    const ditherAnswer = await readString("Dither the image? [default=y] (y/n): ").then((a) => a.toLowerCase() === "y" || !a);
+    const fingerprint = await readString("Your fingerprint: ").then((a) => a || "aba2d6b6b48e0609bf63dae8a6f6d985");
+    const multipleMachines = await readString("Running on multiple machines? [default=n] (y/n): ").then((a) => a.toLowerCase() === "y");
+    let machineCount: number = 1;
+    let machineId: number = 0;
+    if (multipleMachines) {
+        machineCount = await readNumber("Machine count: ").then((a) => {
+            if (a < 0) {
+                throw new Error(`Invalid machine count, must be above 0`);
+            }
+            return a;
+        });
+        machineId = await readNumber(`This machine ID (0-${machineCount - 1}): `).then((a) => {
+            if (a < 0 || a >= machineCount) {
+                throw new Error(`Invalid machine id, must be from 0 to ${machineCount - 1}`);
+            }
+            return a;
+        });
+    }
     fs.createReadStream(imgPath)
     .pipe(new PNG())
     .on("parsed", async function(this: PNG) {
@@ -73,6 +89,15 @@ async function start() {
 
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
+                // For multiple machines:
+                const cordId = x + y * this.width;
+                if ((cordId + machineId + 1) % machineCount === 0) {
+                    // This one is mine.
+                } else {
+                    // Not my job to paint this one
+                    continue;
+                }
+
                 // tslint:disable-next-line: no-bitwise
                 const idx = (this.width * y + x) << 2;
 
