@@ -5,116 +5,30 @@ import { ChunkCache } from "./chunkCache";
 import colorConverter from "./colorConverter";
 import { Guid } from "./guid";
 import { timeoutFor } from "./timeoutHelper";
+import userInput, { IProgramParameters } from "./userInput";
 
 const Dither = require("image-dither");
 
 let chunks = new ChunkCache();
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-});
-
 async function startAndGetUserInput() {
-    const args = process.argv.slice(2);
+    await userInput.gatherProgramParameters();
 
-    let xLeftMost: number;
-    if (args[0]) {
-        xLeftMost = parseInt(args[0], 10);
-        // tslint:disable-next-line: no-console
-        console.log("x=" + xLeftMost);
-    } else {
-        xLeftMost = await readNumber("TopLeft x: ");
+    if (!userInput.currentParameters) {
+        throw new Error("Parameters couldn't be parsed");
     }
 
-    let yTopMost: number;
-    if (args[1]) {
-        yTopMost = parseInt(args[1], 10);
-        // tslint:disable-next-line: no-console
-        console.log("y=" + yTopMost);
-    } else {
-        yTopMost = await readNumber("TopLeft y: ");
-    }
-
-    let imgPath: string;
-    if (args[2]) {
-        imgPath = args[2];
-        // tslint:disable-next-line: no-console
-        console.log("imgPath=" + imgPath);
-    } else {
-        imgPath = await readString("Path to an image: ");
-    }
-
-    let ditherTheImageAnswer: string;
-    if (args[3]) {
-        ditherTheImageAnswer = args[3];
-        // tslint:disable-next-line: no-console
-        console.log("Dither the image=" + ditherTheImageAnswer);
-    } else {
-        ditherTheImageAnswer = await readString("Dither the image? [default=y] (y/n): ");
-    }
-    const ditherTheImage: boolean = ditherTheImageAnswer.toLowerCase() === "y" || !ditherTheImageAnswer;
-
-    let fingerprint: string;
-    if (args[4]) {
-        fingerprint = args[4];
-    } else {
-        fingerprint = await readString("Your fingerprint: ").then((a) => a || Guid.newGuid());
-    }
     // tslint:disable-next-line: no-console
-    console.log("fingerprint=" + fingerprint);
-
-    let multipleMachines: boolean;
-    if (args[5]) {
-        multipleMachines = true;
-    } else {
-        multipleMachines = await readString("Running on multiple machines? [default=n] (y/n): ").then((a) => a.toLowerCase() === "y");
-    }
-
-    let machineCount: number = 1;
-    if (args[5]) {
-        machineCount = parseInt(args[5], 10);
-        // tslint:disable-next-line: no-console
-        console.log("machineCount=" + machineCount);
-    } else if (multipleMachines) {
-        machineCount = await readNumber("Machine count: ");
-    }
-
-    if (machineCount < 0) {
-        throw new Error(`Invalid machine count, must be above 0`);
-    }
-
-    let machineId: number = 0;
-    if (args[6]) {
-        machineId = parseInt(args[6], 10);
-        // tslint:disable-next-line: no-console
-        console.log("machineId=" + machineId);
-    } else if (multipleMachines) {
-        machineId = await readNumber("Machine ID: ");
-    }
-
-    if (machineId < 0 || machineId >= machineCount) {
-        throw new Error(`Invalid machine id, must be from 0 to ${machineCount - 1}`);
-    }
-
-    let constantWatchAnswer: string;
-    if (args[7]) {
-        constantWatchAnswer = args[7];
-        // tslint:disable-next-line: no-console
-        console.log("constantWatch=" + constantWatchAnswer);
-    } else {
-        constantWatchAnswer = await readString("Continue watching for changes (grief fix mode)? [default=n] (y/n): ");
-    }
-    const constantWatch: boolean = constantWatchAnswer.toLowerCase() === "y";
-
-    return start(xLeftMost, yTopMost, imgPath, ditherTheImage, fingerprint, machineCount, machineId, constantWatch);
+    console.log("-------------------------------------------\nStarting with parameters: " + JSON.stringify(userInput.currentParameters));
+    return start(userInput.currentParameters);
 }
-async function start(xLeftMost: number, yTopMost: number, imgPath: string, ditherTheImage: boolean, fingerprint: string, machineCount: number, machineId: number, constantWatch: boolean) {
-    fs.createReadStream(imgPath)
+async function start(params: IProgramParameters) {
+    fs.createReadStream(params.imgPath)
     .pipe(new PNG())
     .on("parsed", async function(this: PNG) {
 
-        if (ditherTheImage) {
+        if (params.ditherTheImage) {
+            // Dither the image (makes photos look better, more realistic with color depth)
             /* matrices available to use.
             Dither.matrices.atkinson
             Dither.matrices.burkes
@@ -142,6 +56,7 @@ async function start(xLeftMost: number, yTopMost: number, imgPath: string, dithe
             this.data = ditheredDataBuffer;
             this.pack().pipe(fs.createWriteStream("expectedOutput.png"));
         } else {
+            // Convert all colors to 24 provided by the website beforehand and output a picture for a preview.
             for (let y = 0; y < this.height; y++) {
                 for (let x = 0; x < this.width; x++) {
                     // tslint:disable-next-line: no-bitwise
@@ -163,7 +78,7 @@ async function start(xLeftMost: number, yTopMost: number, imgPath: string, dithe
             for (let x = 0; x < this.width; x++) {
                 // For multiple machines:
                 const cordId = x + y * this.width;
-                if ((cordId + machineId + 1) % machineCount === 0) {
+                if ((cordId + params.machineId + 1) % params.machineCount === 0) {
                     // This one is mine.
                 } else {
                     // Not my job to paint this one
@@ -182,26 +97,26 @@ async function start(xLeftMost: number, yTopMost: number, imgPath: string, dithe
                     continue;
                 }
 
-                const targetPixel: {x: number, y: number} = { x: (xLeftMost + x), y: (yTopMost + y) };
+                const targetPixel: {x: number, y: number} = { x: (params.xLeftMost + x), y: (params.yTopMost + y) };
 
                 const targetColor = colorConverter.convertActualColor(r, g, b);
                 const currentColor = await chunks.getCoordinateColor(targetPixel.x, targetPixel.y);
                 if (!colorConverter.areColorsEqual(targetColor, currentColor)) {
-                    const postPixelResult = await chunks.retryPostPixel(targetPixel.x, targetPixel.y, targetColor, fingerprint);
+                    const postPixelResult = await chunks.retryPostPixel(targetPixel.x, targetPixel.y, targetColor, params.fingerprint);
                     // tslint:disable-next-line: no-console
                     console.log("Just placed " + targetColor + " at " + targetPixel.x + ":" + targetPixel.y);
                     if (postPixelResult.waitSeconds > 50) {
-                        await timeoutFor((postPixelResult.waitSeconds - 50) * 1000);
+                        await timeoutFor((postPixelResult.waitSeconds - Math.random() * 45) * 1000);
                     }
                 }
             }
         }
-        if (constantWatch) {
+        if (params.constantWatch) {
             // tslint:disable-next-line: no-console
             console.log("job done. Waiting for 5 minutes, will check again.");
             setTimeout(() => {
                 chunks = new ChunkCache();
-                start(xLeftMost, yTopMost, imgPath, ditherTheImage, fingerprint, machineCount, machineId, constantWatch);
+                start(params);
             }, 300000);
         } else {
             // tslint:disable-next-line: no-console
@@ -210,33 +125,4 @@ async function start(xLeftMost: number, yTopMost: number, imgPath: string, dithe
     });
 }
 
-async function readNumber(question: string): Promise<number> {
-    const promise = new Promise<number>((resolve, reject) => {
-        rl.question(question, (numStr: string) => {
-            const num = parseInt(numStr, 10);
-            if (isNaN(num)) {
-                reject("invalid number");
-                return;
-            }
-            resolve(num);
-            return;
-        });
-    });
-    return promise;
-}
-
-async function readString(question: string): Promise<string> {
-    const promise = new Promise<string>((resolve, reject) => {
-        rl.question(question, (str: string) => {
-            resolve(str);
-            return;
-        });
-    });
-    return promise;
-}
-
-startAndGetUserInput().then(() => {
-    rl.close();
-}).catch(() => {
-    rl.close();
-});
+startAndGetUserInput();
