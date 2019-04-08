@@ -11,11 +11,13 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^11.9.5",
+    "@types/node": "^11.13.0",
     "@types/pngjs": "^3.3.2",
     "axios": "^0.18.0",
+    "image-dither": "^1.0.1",
     "pngjs": "^3.4.0",
-    "tslint": "^5.13.0",
-    "typescript": "^3.3.3333"
+    "tslint": "^5.15.0",
+    "typescript": "^3.4.2",
+    "vorpal": "^1.12.0"
   }
 }

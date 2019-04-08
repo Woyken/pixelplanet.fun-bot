@@ -45,6 +45,10 @@ class ColorConverter {
         return resultColor;
     }
 
+    public getActualColor(color: number): [number, number, number] {
+        return [this.colorDict[color][0], this.colorDict[color][1], this.colorDict[color][2]];
+    }
+
     public areColorsEqual(c1: number, c2: number): boolean {
         if (c1 === c2) {
             return true;
