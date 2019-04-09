@@ -63,7 +63,7 @@ class UserInput {
 
         let ditherTheImage: boolean = false;
         if (args[3]) {
-            ditherTheImage = args[3].toLowerCase() === "y" || !args[3];
+            ditherTheImage = args[3].toLowerCase() === "y";
         }
         // tslint:disable-next-line: no-console
         console.log("Dither the image=" + ditherTheImage);
@@ -132,8 +132,8 @@ class UserInput {
 
         const imgPath = await this.readString(rl, "Path to an image: ");
 
-        let tmpStr = await this.readString(rl, "Dither the image? [default=y] (y/n): ");
-        const ditherTheImage: boolean = tmpStr.toLowerCase() === "y" || !tmpStr;
+        let tmpStr = await this.readString(rl, "Dither the image? [default=n] (y/n): ");
+        const ditherTheImage: boolean = tmpStr.toLowerCase() === "y";
 
         const multipleMachines = await this.readString(rl, "Running on multiple machines? [default=n] (y/n): ").then((a) => a.toLowerCase() === "y");
 
@@ -155,17 +155,17 @@ class UserInput {
             throw new Error(`Invalid machine id, must be from 0 to ${machineCount - 1}`);
         }
 
-        tmpStr = await this.readString(rl, "Continue watching for changes (grief fix mode)? [default=n] (y/n): ");
+        tmpStr = await this.readString(rl, "Continue watching for changes after script finishes (grief fix mode)? [default=n] (y/n): ");
         const constantWatch: boolean = tmpStr.toLowerCase() === "y";
 
         const doNotOverrideColors: number[] = [];
-        tmpStr = await this.readString(rl, "Do not override colors list (\"script-collab mode\"): [default=NONE] ('2,3,12,23'): ");
+        tmpStr = await this.readString(rl, "Do not paint over colors list (\"script-collab mode\"): [default=NONE] ('2,3,12,23'): ");
         const inColorsStrArr = tmpStr.split(",");
         inColorsStrArr.forEach((el) => {
             doNotOverrideColors.push(parseInt(el, 10));
         });
 
-        const fingerprint = await this.readString(rl, "Your fingerprint: ").then((a) => a || Guid.newGuid());
+        const fingerprint = await this.readString(rl, "Your fingerprint [default={generates new}]: ").then((a) => a || Guid.newGuid());
 
         this.currentParameters = {
             constantWatch,
