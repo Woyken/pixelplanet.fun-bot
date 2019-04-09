@@ -10,6 +10,7 @@ export interface IProgramParameters {
     machineCount: number;
     machineId: number;
     constantWatch: boolean;
+    doNotOverrideColors: number[];
 }
 
 class UserInput {
@@ -68,8 +69,8 @@ class UserInput {
         console.log("Dither the image=" + ditherTheImage);
 
         let machineCount: number = 1;
-        if (args[5]) {
-            machineCount = parseInt(args[5], 10);
+        if (args[4]) {
+            machineCount = parseInt(args[4], 10);
             if (machineCount < 0) {
                 throw new Error(`Invalid machine count, must be above 0`);
             }
@@ -78,8 +79,8 @@ class UserInput {
         console.log("machineCount=" + machineCount);
 
         let machineId: number = 0;
-        if (args[6]) {
-            machineId = parseInt(args[6], 10);
+        if (args[5]) {
+            machineId = parseInt(args[5], 10);
             if (machineId < 0 || machineId >= machineCount) {
                 throw new Error(`Invalid machine id, must be from 0 to ${machineCount - 1}`);
             }
@@ -88,15 +89,23 @@ class UserInput {
         console.log("machineId=" + machineId);
 
         let constantWatch: boolean = false;
-        if (args[7]) {
-            constantWatch = args[7].toLowerCase() === "y";
+        if (args[6]) {
+            constantWatch = args[6].toLowerCase() === "y";
         }
         // tslint:disable-next-line: no-console
         console.log("constantWatch=" + constantWatch);
 
+        const doNotOverrideColors: number[] = [];
+        if (args[7]) {
+             const inColorsStrArr = args[7].split(",");
+             inColorsStrArr.forEach((el) => {
+                doNotOverrideColors.push(parseInt(el, 10));
+             });
+        }
+
         let fingerprint: string;
-        if (args[4]) {
-            fingerprint = args[4];
+        if (args[8]) {
+            fingerprint = args[8];
         } else {
             fingerprint = Guid.newGuid();
         }
@@ -106,6 +115,7 @@ class UserInput {
         this.currentParameters = {
             constantWatch,
             ditherTheImage,
+            doNotOverrideColors,
             fingerprint,
             imgPath,
             machineCount,
@@ -148,11 +158,19 @@ class UserInput {
         tmpStr = await this.readString(rl, "Continue watching for changes (grief fix mode)? [default=n] (y/n): ");
         const constantWatch: boolean = tmpStr.toLowerCase() === "y";
 
+        const doNotOverrideColors: number[] = [];
+        tmpStr = await this.readString(rl, "Do not override colors list (\"script-collab mode\"): [default=NONE] ('2,3,12,23'): ");
+        const inColorsStrArr = tmpStr.split(",");
+        inColorsStrArr.forEach((el) => {
+            doNotOverrideColors.push(parseInt(el, 10));
+        });
+
         const fingerprint = await this.readString(rl, "Your fingerprint: ").then((a) => a || Guid.newGuid());
 
         this.currentParameters = {
             constantWatch,
             ditherTheImage,
+            doNotOverrideColors,
             fingerprint,
             imgPath,
             machineCount,
