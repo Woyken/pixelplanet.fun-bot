@@ -82,6 +82,8 @@ async function start(params: IProgramParameters) {
         const picMiddleX = Math.floor( this.width / 2);
         const picMiddleY = Math.floor( this.height / 2);
 
+        let placedPixelsCounter = 0;
+
         for (let i = 255; i >= 0; i--) {
             const currentWorkingList = imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
                 // Sort by distance from middle. Start from furtest points
@@ -124,6 +126,13 @@ async function start(params: IProgramParameters) {
                     const postPixelResult = await chunks.retryPostPixel(targetPixel.x, targetPixel.y, targetColor, params.fingerprint);
                     // tslint:disable-next-line: no-console
                     console.log("Just placed " + targetColor + " at " + targetPixel.x + ":" + targetPixel.y);
+
+                    // Every 20 placements refresh chunk cache:
+                    placedPixelsCounter++;
+                    if (placedPixelsCounter % 20 === 0) {
+                        chunks = new ChunkCache();
+                    }
+
                     if (postPixelResult.waitSeconds > 50) {
                         const waitingFor = postPixelResult.waitSeconds - Math.random() * 45;
                         // tslint:disable-next-line: no-console
