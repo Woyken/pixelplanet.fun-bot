@@ -79,8 +79,8 @@ async function start(params: IProgramParameters) {
             this.pack().pipe(fs.createWriteStream("expectedOutput.png"));
         }
 
-        for (let i = 255; i >= 0; i = i - 5) {
-            const currentorkingList = imgProcessor.getIncrementalEdges(i, i + 5);
+        for (let i = 255; i >= 0; i--) {
+            const currentorkingList = imgProcessor.getIncrementalEdges(i, i);
             while (currentorkingList.length > 0) {
                 const currentTargetCoords = currentorkingList.pop();
                 const x = currentTargetCoords!.x;
