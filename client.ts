@@ -79,10 +79,18 @@ async function start(params: IProgramParameters) {
             this.pack().pipe(fs.createWriteStream("expectedOutput.png"));
         }
 
+        const picMiddleX = Math.floor( this.width / 2);
+        const picMiddleY = Math.floor( this.height / 2);
+
         for (let i = 255; i >= 0; i--) {
-            const currentorkingList = imgProcessor.getIncrementalEdges(i, i);
-            while (currentorkingList.length > 0) {
-                const currentTargetCoords = currentorkingList.pop();
+            const currentWorkingList = imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
+                // Sort by distance from middle. Start from furtest points
+                const distA = Math.sqrt((a.x - picMiddleX) * (a.x - picMiddleX) + (a.y - picMiddleY) * (a.y - picMiddleY));
+                const distB = Math.sqrt((b.x - picMiddleX) * (b.x - picMiddleX) + (b.y - picMiddleY) * (b.y - picMiddleY));
+                return distA - distB;
+            });
+            while (currentWorkingList.length > 0) {
+                const currentTargetCoords = currentWorkingList.pop();
                 const x = currentTargetCoords!.x;
                 const y = currentTargetCoords!.y;
 
