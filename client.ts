@@ -122,7 +122,7 @@ async function start(params: IProgramParameters) {
                 const targetColor = colorConverter.convertActualColor(r, g, b);
                 const currentColor = await chunks.getCoordinateColor(targetPixel.x, targetPixel.y);
                 if (!colorConverter.areColorsEqual(targetColor, currentColor) &&
-                    params.doNotOverrideColors.findIndex((c) => c === targetColor) < 0) {
+                    params.doNotOverrideColors.findIndex((c) => c === currentColor) < 0) {
                     const postPixelResult = await chunks.retryPostPixel(targetPixel.x, targetPixel.y, targetColor, params.fingerprint);
                     // tslint:disable-next-line: no-console
                     console.log("Just placed " + targetColor + " at " + targetPixel.x + ":" + targetPixel.y);
