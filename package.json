@@ -5,7 +5,8 @@
   "main": "dist/client.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ./dist/client.js",
+    "start-script": "node ./dist/client.js",
+    "start": "npm run build && npm run start-script --",
     "build": "tsc"
   },
   "author": "",
