@@ -107,17 +107,26 @@ export class ChunkCache {
             url: `https://pixelplanet.fun/chunks/${x}/${y}.bin`,
         });
 
-        if (resp.status !== 200) {
-            // tslint:disable-next-line: no-console
-            console.log("Chunk gathering responded with " + resp.statusText);
-            throw new Error("response did not succeed");
-        } else {
-            if (resp.data === "") {
-                // this means chunk is completely empty.
-                return Buffer.alloc(256 * 256, 0);
-            }
-            const buffer = Buffer.from(resp.data);
-            return buffer;
+        switch (resp.status) {
+            case 200:
+                if (resp.data === "") {
+                    // this means chunk is completely empty.
+                    return Buffer.alloc(256 * 256, 0);
+                }
+                const buffer = Buffer.from(resp.data);
+                return buffer;
+
+            case 403:
+                // Forbidden: Either admin has blocked your Ip or you ran into protected pixels. At this point it's better to just stop.
+                // tslint:disable-next-line: no-console
+                console.error("You just into Admin. He has prevented you from placing pixel. STOPPING NOW!");
+                process.exit(0);
+                throw new Error("Stopped by admin");
+                break;
+            default:
+                // tslint:disable-next-line: no-console
+                console.log("Chunk gathering responded with " + resp.statusText);
+                throw new Error("response did not succeed");
         }
     }
 }
