@@ -5,18 +5,36 @@ const sobel = require("sobel");
 import { PNG } from "pngjs";
 
 export class ImageProcessor {
+
+    public static async create(imgData: PNG, customEdgesMapImgPath: string): Promise<ImageProcessor> {
+        return new Promise<ImageProcessor>((resolve, reject) => {
+            if (customEdgesMapImgPath) {
+                // edges map was provided, read it and save data.
+                fs.createReadStream(customEdgesMapImgPath)
+                .pipe(new PNG())
+                .on("parsed", async function(this: PNG) {
+                    resolve(new ImageProcessor(this));
+                    return;
+                });
+            } else {
+                // create out own edges map.
+                const newPng = new PNG({height: imgData.height, width: imgData.width});
+                newPng.data = Buffer.from(imgData.data);
+
+                // generate edges data
+                newPng.data = sobel(imgData);
+
+                resolve(new ImageProcessor(newPng));
+            }
+        });
+
+    }
+
     private imgData: PNG;
-    private sobelData: Buffer;
 
-    constructor(imgData: PNG) {
-        const newPng = new PNG({height: imgData.height, width: imgData.width});
-        newPng.data = Buffer.from(imgData.data);
-        this.imgData = newPng;
-        this.sobelData = sobel(this.imgData);
-
-        const temp = this.imgData.data;
-        this.imgData.data = this.sobelData;
-        this.imgData.pack().pipe(fs.createWriteStream("currentlyMaking.png"));
+    private constructor(imgData: PNG) {
+        this.imgData = imgData;
+        imgData.pack().pipe(fs.createWriteStream("currentlyMaking.png"));
     }
 
     public getIncrementalEdges(intensityValueMin: number, intensityValueMax: number): Array<{x: number, y: number}> {
@@ -27,10 +45,10 @@ export class ImageProcessor {
                 // tslint:disable-next-line: no-bitwise
                 const idx = (this.imgData.width * y + x) << 2;
 
-                const r = this.sobelData[idx + 0];
-                const g = this.sobelData[idx + 1];
-                const b = this.sobelData[idx + 2];
-                const a = this.sobelData[idx + 3];
+                const r = this.imgData.data[idx + 0];
+                const g = this.imgData.data[idx + 1];
+                const b = this.imgData.data[idx + 2];
+                const a = this.imgData.data[idx + 3];
 
                 if (g >= intensityValueMin && g <= intensityValueMax) {
                     resultCoordsArray.push({x, y});

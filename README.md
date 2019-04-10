@@ -14,11 +14,11 @@ OR
 
 Start program with parameters:
 
-npm start -- TopLeftX TopLeftY PathToImage \[ShouldDither MachineCount MachineId ContinuousWatching DoNotOverrideColors Fingerprint]
+npm start -- TopLeftX TopLeftY PathToImage \[ShouldDither MachineCount MachineId ContinuousWatching DoNotOverrideColors CustomEdgesMapImagePath]
 
 Example:
 ```
-npm start -- 2000 -12000 photo.png y 1 1 n 6,7,4,5
+npm start -- 2000 -12000 photo.png y 1 0 n 6,7,4,5
 ```
 
 ```
@@ -48,5 +48,3 @@ Only first 3 parameters are required.
 **ContinuousWatching** - After program finishes, do you want to keep watching over the drawing for any griefings, and keep on fixing? (y/n)
 
 **DoNotOverrideColors** - Option to specify color ids to not draw over. **Write any string if not used**. Used if you want to draw around something, ex. draw rainbow only on white color around other colored drawings. I used it to allow others to contribute live to the progress and not draw over their parts. Specifying "2,6" would ignore all white and black pixels playrs have placed. (2,3,4,5)
-
-**Fingerprint** - Specify custom fingerprint for requests.

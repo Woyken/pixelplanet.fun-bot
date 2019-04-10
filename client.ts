@@ -29,7 +29,7 @@ async function start(params: IProgramParameters) {
     .pipe(new PNG())
     .on("parsed", async function(this: PNG) {
         // Create image processor, initialize edges before preprocessing image
-        const imgProcessor = new ImageProcessor(this);
+        const imgProcessor = await ImageProcessor.create(this, params.customEdgesMapImagePath);
 
         if (params.ditherTheImage) {
             // Dither the image (makes photos look better, more realistic with color depth)

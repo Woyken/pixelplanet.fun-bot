@@ -11,6 +11,7 @@ export interface IProgramParameters {
     machineId: number;
     constantWatch: boolean;
     doNotOverrideColors: number[];
+    customEdgesMapImagePath: string;
 }
 
 class UserInput {
@@ -103,17 +104,18 @@ class UserInput {
              });
         }
 
-        let fingerprint: string;
+        const fingerprint = Guid.newGuid();
+
+        let customEdgesMapImagePath: string = "";
         if (args[8]) {
-            fingerprint = args[8];
-        } else {
-            fingerprint = Guid.newGuid();
+            customEdgesMapImagePath = args[8];
+            // tslint:disable-next-line: no-console
+            console.log("customEdgesMapImagePath=" + customEdgesMapImagePath);
         }
-        // tslint:disable-next-line: no-console
-        console.log("fingerprint=" + fingerprint);
 
         this.currentParameters = {
             constantWatch,
+            customEdgesMapImagePath,
             ditherTheImage,
             doNotOverrideColors,
             fingerprint,
@@ -165,10 +167,13 @@ class UserInput {
             doNotOverrideColors.push(parseInt(el, 10));
         });
 
-        const fingerprint = await this.readString(rl, "Your fingerprint [default={generates new}]: ").then((a) => a || Guid.newGuid());
+        const fingerprint = Guid.newGuid();
+
+        const customEdgesMapImagePath = await this.readString(rl, "[Optional] Provide with custom edges drawing map (Greyscale image showing how to draw the image): ");
 
         this.currentParameters = {
             constantWatch,
+            customEdgesMapImagePath,
             ditherTheImage,
             doNotOverrideColors,
             fingerprint,
