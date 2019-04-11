@@ -14,12 +14,14 @@
   "dependencies": {
     "@types/node": "^11.13.0",
     "@types/pngjs": "^3.3.2",
+    "@types/ws": "^6.0.1",
     "axios": "^0.18.0",
     "image-dither": "^1.0.1",
     "pngjs": "^3.4.0",
     "sobel": "0.0.11",
     "tslint": "^5.15.0",
     "typescript": "^3.4.2",
-    "vorpal": "^1.12.0"
+    "vorpal": "^1.12.0",
+    "ws": "^6.2.1"
   }
 }

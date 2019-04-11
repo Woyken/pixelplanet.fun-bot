@@ -11,8 +11,6 @@ import userInput, { IProgramParameters } from "./userInput";
 // tslint:disable-next-line: no-var-requires
 const Dither = require("image-dither");
 
-let chunks = new ChunkCache();
-
 async function startAndGetUserInput() {
     await userInput.gatherProgramParameters();
 
@@ -20,11 +18,13 @@ async function startAndGetUserInput() {
         throw new Error("Parameters couldn't be parsed");
     }
 
+    const chunksCache = new ChunkCache(userInput.currentParameters.fingerprint);
+
     // tslint:disable-next-line: no-console
     console.log("-------------------------------------------\nStarting with parameters: " + JSON.stringify(userInput.currentParameters));
-    return start(userInput.currentParameters);
+    return start(userInput.currentParameters, chunksCache);
 }
-async function start(params: IProgramParameters) {
+async function start(params: IProgramParameters, chunkCache: ChunkCache) {
     fs.createReadStream(params.imgPath)
     .pipe(new PNG())
     .on("parsed", async function(this: PNG) {
@@ -118,17 +118,15 @@ async function start(params: IProgramParameters) {
                 const targetPixel: {x: number, y: number} = { x: (params.xLeftMost + x), y: (params.yTopMost + y) };
 
                 const targetColor = colorConverter.convertActualColor(r, g, b);
-                const currentColor = await chunks.getCoordinateColor(targetPixel.x, targetPixel.y);
+                const currentColor = await chunkCache.getCoordinateColor(targetPixel.x, targetPixel.y);
                 if (!colorConverter.areColorsEqual(targetColor, currentColor) &&
                     params.doNotOverrideColors.findIndex((c) => c === currentColor) < 0) {
-                    const postPixelResult = await chunks.retryPostPixel(targetPixel.x, targetPixel.y, targetColor, params.fingerprint);
+                    const postPixelResult = await chunkCache.retryPostPixel(targetPixel.x, targetPixel.y, targetColor, params.fingerprint);
                     // tslint:disable-next-line: no-console
                     console.log("Just placed " + targetColor + " at " + targetPixel.x + ":" + targetPixel.y);
 
                     if (postPixelResult.waitSeconds > 50) {
                         const waitingFor = postPixelResult.waitSeconds - Math.random() * 45;
-                        // Clear cache every time we wait
-                        chunks = new ChunkCache();
 
                         // tslint:disable-next-line: no-console
                         console.log("Waiting for: " + waitingFor + " seconds");
@@ -141,8 +139,8 @@ async function start(params: IProgramParameters) {
             // tslint:disable-next-line: no-console
             console.log("job done. Waiting for 5 minutes, will check again.");
             setTimeout(() => {
-                chunks = new ChunkCache();
-                start(params);
+                chunkCache = new ChunkCache(params.fingerprint);
+                start(params, chunkCache);
             }, 300000);
         } else {
             // tslint:disable-next-line: no-console

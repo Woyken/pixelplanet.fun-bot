@@ -1,8 +1,16 @@
 import axios from "axios";
 import { timeoutFor } from "./timeoutHelper";
+import { WebSocketHandler } from "./webSocketHandler";
 
 export class ChunkCache {
     private cachedChunks: { [id: number]: Buffer; } = {};
+    private ws: WebSocketHandler;
+
+    public constructor(fingerprint: string) {
+        this.ws = new WebSocketHandler(fingerprint);
+        this.ws.onPixelUpdate = this.onUpdatePixelInChunk.bind(this);
+        this.ws.connect();
+    }
 
     public async getCoordinateColor(x: number, y: number): Promise<number> {
         x += 32768;
@@ -13,6 +21,7 @@ export class ChunkCache {
         const cachedChunkId = chunkX + chunkY * 256;
         if (!this.cachedChunks[cachedChunkId]) {
             this.cachedChunks[cachedChunkId] = await this.retryfetchChunkData(chunkX, chunkY);
+            this.ws.watchChunk(cachedChunkId);
         }
 
         const xPixelInChunk = x % 256;
@@ -63,12 +72,12 @@ export class ChunkCache {
             console.log("pixel posting responded with " + resp.statusText);
             throw new Error("response did not succeed, " + resp.statusText);
         } else {
-            await this.setCoordinateColor(x, y, color);
+            await this.setPixelColor(x, y, color);
             return resp.data as PixelPlanetPixelPostResponse;
         }
     }
 
-    private async setCoordinateColor(x: number, y: number, c: number) {
+    private async setPixelColor(x: number, y: number, c: number) {
         x += 32768;
         y += 32768;
 
@@ -78,6 +87,7 @@ export class ChunkCache {
 
         if (!this.cachedChunks[cachedChunkId]) {
             this.cachedChunks[cachedChunkId] = await this.retryfetchChunkData(chunkX, chunkY);
+            this.ws.watchChunk(cachedChunkId);
             return;
         }
 
@@ -85,6 +95,14 @@ export class ChunkCache {
         const yPixelInChunk = y % 256;
 
         this.cachedChunks[cachedChunkId].writeInt8(c, (xPixelInChunk + (yPixelInChunk * 256)));
+    }
+
+    private async onUpdatePixelInChunk(chunkX: number, chunkY: number, pixelIdInChunk: number, color: number): Promise<void> {
+        const cachedChunkId = chunkX + chunkY * 256;
+        if (!this.cachedChunks[cachedChunkId]) {
+            return;
+        }
+        this.cachedChunks[cachedChunkId].writeInt8(color, pixelIdInChunk);
     }
 
     private async retryfetchChunkData(x: number, y: number): Promise<Buffer> {
