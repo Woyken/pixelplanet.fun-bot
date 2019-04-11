@@ -145,6 +145,7 @@ async function start(params: IProgramParameters, chunkCache: ChunkCache) {
         } else {
             // tslint:disable-next-line: no-console
             console.log("all done!");
+            process.exit(0);
         }
     });
 }
