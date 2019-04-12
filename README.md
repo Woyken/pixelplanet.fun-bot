@@ -1,4 +1,4 @@
-﻿## pixelplanet.fun Bot prototype
+﻿# PixelPlanet.fun Bot prototype
 
 ## BEFORE WE START (Disclaimer)
 
@@ -7,13 +7,14 @@ DO NOT ABUSE the bot.
 Administrators are banning IP addresses of those who abuse bots.
 
 * Please do not build huge structures/memes or what ever else it maybe near LEGIT player's artwork. YOUR IP WILL GET BANNED.
-* Admins have informed us that only small paintings or big ones far away from everyone (in Antarctica or what ever are fine).
+* Admins have informed us that only small paintings or big ones far away from everyone (in Antarctica or what ever) are fine.
 * And as always use **common sense**. What if you were the one trying to build pepe the frog by hand suddenly there starts emerge gigantic d**k right in front of you, blocking 1/3 of your painting. Think about it.
 * One last thing. Bots are supposed to help us, don't abuse them.
 
 ## Rough steps on how to
+
 1. git pull
-2. Make sure you have nodejs
+2. *Make sure you have nodejs
 3. npm install
 4. npm start
 5. provide
