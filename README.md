@@ -1,27 +1,42 @@
-﻿# pixelplanet.fun Bot prototype
+﻿## pixelplanet.fun Bot prototype
+
+## BEFORE WE START (Disclaimer)
+
+DO NOT ABUSE the bot.
+
+Administrators are banning IP addresses of those who abuse bots.
+
+* Please do not build huge structures/memes or what ever else it maybe near LEGIT player's artwork. YOUR IP WILL GET BANNED.
+* Admins have informed us that only small paintings or big ones far away from everyone (in Antarctica or what ever are fine).
+* And as always use **common sense**. What if you were the one trying to build pepe the frog by hand suddenly there starts emerge gigantic d**k right in front of you, blocking 1/3 of your painting. Think about it.
+* One last thing. Bots are supposed to help us, don't abuse them.
+
+## Rough steps on how to
 1. git pull
 2. Make sure you have nodejs
 3. npm install
-4. npm run build
-5. npm start
-6. provide
+4. npm start
+5. provide
   x,
   y,
   path to picture,
-  fingerprint (copied from your browser requests)
+  other optional parameters
 
 OR
 
 Start program with parameters:
 
+```batch
 npm start -- TopLeftX TopLeftY PathToImage \[ShouldDither MachineCount MachineId ContinuousWatching DoNotOverrideColors CustomEdgesMapImagePath]
+```
 
 Example:
-```
+
+```batch
 npm start -- 2000 -12000 photo.png y 1 0 n 6,7,4,5
 ```
 
-```
+```batch
 npm start -- 1100 3300 mario.png n 5 0 y none
 ```
 
