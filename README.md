@@ -8,7 +8,7 @@ Administrators are banning IP addresses of those who abuse bots.
 
 * Please do not build huge structures/memes or what ever else it maybe near LEGIT player's artwork. YOUR IP WILL GET BANNED.
 * Admins have informed us that only small paintings or big ones far away from everyone (in Antarctica or what ever) are fine.
-* And as always use **common sense**. What if you were the one trying to build pepe the frog by hand suddenly there starts to emerge gigantic d\*\*k right in front of you, blocking 1/3 of your painting. Think about it.
+* And as always use **common sense**. What if you were the one trying to build pepe the frog by hand, when suddenly there starts to emerge gigantic d\*\*k right in front of you, blocking 1/3 of your painting. Think about it.
 * One last thing. Bots are supposed to help us, don't abuse them.
 
 ## Rough steps on how to
