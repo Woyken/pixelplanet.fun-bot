@@ -1,4 +1,6 @@
 import axios from "axios";
+import axiosCookieJarSupport from "axios-cookiejar-support";
+import { CookieJar } from "tough-cookie";
 import { timeoutFor } from "./timeoutHelper";
 import { WebSocketHandler } from "./webSocketHandler";
 
@@ -6,7 +8,11 @@ export class ChunkCache {
     private cachedChunks: { [id: number]: Buffer; } = {};
     private ws: WebSocketHandler;
 
+    private cookieJar = new CookieJar();
+
     public constructor(fingerprint: string) {
+        axiosCookieJarSupport(axios);
+
         this.ws = new WebSocketHandler(fingerprint);
         this.ws.onPixelUpdate = this.onUpdatePixelInChunk.bind(this);
         this.ws.connect();
@@ -63,8 +69,11 @@ export class ChunkCache {
                 "Referer": "https://pixelpixel.fun/",
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0",
             },
+            jar: this.cookieJar,
             method: "post",
             url: "https://pixelplanet.fun/api/pixel",
+            withCredentials: true,
+
         });
 
         if (resp.status !== 200) {
@@ -121,8 +130,10 @@ export class ChunkCache {
                 "Referer": "https://pixelpixel.fun/",
                 "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:57.0) Gecko/20100101 Firefox/57.0",
             },
+            jar: this.cookieJar,
             method: "get",
             url: `https://pixelplanet.fun/chunks/${x}/${y}.bin`,
+            withCredentials: true,
         });
 
         switch (resp.status) {
