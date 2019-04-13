@@ -46,6 +46,15 @@ class ColorConverter {
     }
 
     public getActualColor(color: number): [number, number, number] {
+        switch (color) {
+            case 0:
+                color = 19;
+                break;
+            case 1:
+                color = 2;
+            default:
+                break;
+        }
         return [this.colorDict[color][0], this.colorDict[color][1], this.colorDict[color][2]];
     }
 
