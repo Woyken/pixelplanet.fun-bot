@@ -22,8 +22,6 @@ export class WebSocketHandler {
     }
 
     public watchChunk(chunkId: number) {
-        chunkId = ((chunkId % 256) * 256 + (Math.floor(chunkId / 256)));
-        console.log("watch chunk" + chunkId);
         const buffer = new ArrayBuffer(1 + 2);
         const view = new DataView(buffer);
         view.setInt8(0, 0xA1);

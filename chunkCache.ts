@@ -27,7 +27,8 @@ export class ChunkCache {
         const cachedChunkId = chunkX + chunkY * 256;
         if (!this.cachedChunks[cachedChunkId]) {
             this.cachedChunks[cachedChunkId] = await this.retryfetchChunkData(chunkX, chunkY);
-            this.ws.watchChunk(cachedChunkId);
+            const chunkId = (chunkX * 256 + chunkY);
+            this.ws.watchChunk(chunkId);
         }
 
         const xPixelInChunk = x % 256;
