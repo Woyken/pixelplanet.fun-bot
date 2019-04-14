@@ -111,6 +111,7 @@ export class ChunkCache {
         if (!this.cachedChunks[cachedChunkId]) {
             return;
         }
+        console.log(`Pixel updated received: ${chunkX * 256 + pixelIdInChunk % 256 - 32768}:${chunkY * 256 + Math.floor(pixelIdInChunk / 256) - 32768}, color: ${color}`);
         this.cachedChunks[cachedChunkId].writeInt8(color, pixelIdInChunk);
     }
 
