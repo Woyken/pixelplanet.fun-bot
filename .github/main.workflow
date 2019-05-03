@@ -1,22 +1,26 @@
 workflow "Build" {
   on = "push"
-  resolves = ["GitHub Action for npm-1"]
+  resolves = ["Create backup png of the page"]
 }
 
-action "Install" {
+action "npm install" {
   uses = "actions/npm@59b64a598378f31e49cb76f27d6f3312b582f680"
   args = "install"
 }
 
-action "GitHub Action for npm" {
+action "npm run build" {
   uses = "actions/npm@59b64a598378f31e49cb76f27d6f3312b582f680"
-  needs = ["Install"]
   args = "run build"
+  needs = ["npm install"]
 }
 
-action "GitHub Action for npm-1" {
-  uses = "actions/npm@59b64a598378f31e49cb76f27d6f3312b582f680"
-  needs = ["GitHub Action for npm"]
-  runs = "npx"
-  args = "node ./dist/pixelToPicture.js 0 0 512 512 0-0.png"
+action "Create backup png of the page" {
+  uses = "JamesIves/github-pages-deploy-action@master"
+  needs = ["npm run build"]
+  env = {
+    BUILD_SCRIPT = "mkdir out\nfor x in {-32768..32767..512}\ndo\n    for y in {-32768..32767..512}\n    do\n        npx node ./dist/pixelToPicture.js $(x) $(y) $((x+512)) $((y+512)) \"./out/$((value/512)).$((value/512)).png\";\n    done\ndone"
+    BRANCH = "PixelPlanet-png-backup"
+    FOLDER = "out"
+  }
+  secrets = ["ACCESS_TOKEN"]
 }
