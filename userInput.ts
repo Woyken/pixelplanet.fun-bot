@@ -7,8 +7,6 @@ export interface IProgramParameters {
     imgPath: string;
     ditherTheImage: boolean;
     fingerprint: string;
-    machineCount: number;
-    machineId: number;
     constantWatch: boolean;
     doNotOverrideColors: number[];
     customEdgesMapImagePath: string;
@@ -69,36 +67,16 @@ class UserInput {
         // tslint:disable-next-line: no-console
         console.log("Dither the image=" + ditherTheImage);
 
-        let machineCount: number = 1;
-        if (args[4]) {
-            machineCount = parseInt(args[4], 10);
-            if (machineCount < 0) {
-                throw new Error(`Invalid machine count, must be above 0`);
-            }
-        }
-        // tslint:disable-next-line: no-console
-        console.log("machineCount=" + machineCount);
-
-        let machineId: number = 0;
-        if (args[5]) {
-            machineId = parseInt(args[5], 10);
-            if (machineId < 0 || machineId >= machineCount) {
-                throw new Error(`Invalid machine id, must be from 0 to ${machineCount - 1}`);
-            }
-        }
-        // tslint:disable-next-line: no-console
-        console.log("machineId=" + machineId);
-
         let constantWatch: boolean = false;
-        if (args[6]) {
-            constantWatch = args[6].toLowerCase() === "y";
+        if (args[4]) {
+            constantWatch = args[4].toLowerCase() === "y";
         }
         // tslint:disable-next-line: no-console
         console.log("constantWatch=" + constantWatch);
 
         const doNotOverrideColors: number[] = [];
-        if (args[7]) {
-             const inColorsStrArr = args[7].split(",");
+        if (args[5]) {
+             const inColorsStrArr = args[5].split(",");
              inColorsStrArr.forEach((el) => {
                 doNotOverrideColors.push(parseInt(el, 10));
              });
@@ -107,8 +85,8 @@ class UserInput {
         const fingerprint = Guid.newGuid();
 
         let customEdgesMapImagePath: string = "";
-        if (args[8]) {
-            customEdgesMapImagePath = args[8];
+        if (args[6]) {
+            customEdgesMapImagePath = args[6];
             // tslint:disable-next-line: no-console
             console.log("customEdgesMapImagePath=" + customEdgesMapImagePath);
         }
@@ -120,8 +98,6 @@ class UserInput {
             doNotOverrideColors,
             fingerprint,
             imgPath,
-            machineCount,
-            machineId,
             xLeftMost,
             yTopMost,
         };
@@ -136,26 +112,6 @@ class UserInput {
 
         let tmpStr = await this.readString(rl, "Dither the image? [default=n] (y/n): ");
         const ditherTheImage: boolean = tmpStr.toLowerCase() === "y";
-
-        const multipleMachines = await this.readString(rl, "Running on multiple machines? [default=n] (y/n): ").then((a) => a.toLowerCase() === "y");
-
-        let machineCount: number = 1;
-        if (multipleMachines) {
-            machineCount = await this.readNumber(rl, "Machine count: ");
-        }
-
-        if (machineCount < 0) {
-            throw new Error(`Invalid machine count, must be above 0`);
-        }
-
-        let machineId: number = 0;
-        if (multipleMachines) {
-            machineId = await this.readNumber(rl, "Machine ID: ");
-        }
-
-        if (machineId < 0 || machineId >= machineCount) {
-            throw new Error(`Invalid machine id, must be from 0 to ${machineCount - 1}`);
-        }
 
         tmpStr = await this.readString(rl, "Continue watching for changes after script finishes (grief fix mode)? [default=n] (y/n): ");
         const constantWatch: boolean = tmpStr.toLowerCase() === "y";
@@ -178,8 +134,6 @@ class UserInput {
             doNotOverrideColors,
             fingerprint,
             imgPath,
-            machineCount,
-            machineId,
             xLeftMost,
             yTopMost,
         };

@@ -28,17 +28,17 @@ OR
 Start program with parameters:
 
 ```batch
-npm start -- TopLeftX TopLeftY PathToImage \[ShouldDither MachineCount MachineId ContinuousWatching DoNotOverrideColors CustomEdgesMapImagePath]
+npm start -- TopLeftX TopLeftY PathToImage \[ShouldDither ContinuousWatching DoNotOverrideColors CustomEdgesMapImagePath]
 ```
 
 Example:
 
 ```batch
-npm start -- 2000 -12000 photo.png y 1 0 n 6,7,4,5
+npm start -- 2000 -12000 photo.png y n 6,7,4,5
 ```
 
 ```batch
-npm start -- 1100 3300 mario.png n 5 0 y none
+npm start -- 1100 3300 mario.png n y none
 ```
 
 ### Note
@@ -56,10 +56,6 @@ Only first 3 parameters are required.
 **PathToImage** - path to an image to draw. (/home/downloads/mario.png)
 
 **ShouldDither** - Dithering is a way to keep picture looking more "original like" with low amount of colors by adding noise to the image, recommended for photos. Without this a photo would look plain and have a very low color depth look. Enable this feature or not? (y/n)
-
-**MachineCount** - If running on multiple machines, provide machine count X. (7) \[If using single device, use 1]
-
-**MachineID** - If running on multiple machines, provide THIS machine's id 0-(X - 1) it's a zero based index. (0) \[If using single device, use 0]
 
 **ContinuousWatching** - After program finishes, do you want to keep watching over the drawing for any griefings, and keep on fixing? (y/n)
 

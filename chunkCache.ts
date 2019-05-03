@@ -5,6 +5,8 @@ import { timeoutFor } from "./timeoutHelper";
 import { WebSocketHandler } from "./webSocketHandler";
 
 export class ChunkCache {
+    public onPixelUpdate?: (x: number, y: number, color: number) => void;
+
     private cachedChunks: { [id: number]: Buffer; } = {};
     private ws: WebSocketHandler;
 
@@ -112,8 +114,12 @@ export class ChunkCache {
         if (!this.cachedChunks[cachedChunkId]) {
             return;
         }
+        // tslint:disable-next-line: no-console
         console.log(`Pixel updated received: ${chunkX * 256 + pixelIdInChunk % 256 - 32768}:${chunkY * 256 + Math.floor(pixelIdInChunk / 256) - 32768}, color: ${color}`);
         this.cachedChunks[cachedChunkId].writeInt8(color, pixelIdInChunk);
+        if (this.onPixelUpdate) {
+            this.onPixelUpdate(chunkX * 256 + pixelIdInChunk % 256 - 32768, chunkY * 256 + Math.floor(pixelIdInChunk / 256) - 32768, color);
+        }
     }
 
     private async retryfetchChunkData(x: number, y: number): Promise<Buffer> {

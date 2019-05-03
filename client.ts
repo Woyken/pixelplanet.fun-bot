@@ -5,7 +5,7 @@ import { ChunkCache } from "./chunkCache";
 import colorConverter from "./colorConverter";
 import { Guid } from "./guid";
 import { ImageProcessor } from "./imageProcessor";
-import { timeoutFor } from "./timeoutHelper";
+import { PixelWorker } from "./pixelWorker";
 import userInput, { IProgramParameters } from "./userInput";
 
 // tslint:disable-next-line: no-var-requires
@@ -18,19 +18,15 @@ async function startAndGetUserInput() {
         throw new Error("Parameters couldn't be parsed");
     }
 
-    const chunksCache = new ChunkCache(userInput.currentParameters.fingerprint);
-
     // tslint:disable-next-line: no-console
     console.log("-------------------------------------------\nStarting with parameters: " + JSON.stringify(userInput.currentParameters));
-    return start(userInput.currentParameters, chunksCache);
+    return start(userInput.currentParameters);
 }
-async function start(params: IProgramParameters, chunkCache: ChunkCache) {
+
+async function start(params: IProgramParameters) {
     fs.createReadStream(params.imgPath)
     .pipe(new PNG())
     .on("parsed", async function(this: PNG) {
-        // Create image processor, initialize edges before preprocessing image
-        const imgProcessor = await ImageProcessor.create(this, params.customEdgesMapImagePath);
-
         if (params.ditherTheImage) {
             // Dither the image (makes photos look better, more realistic with color depth)
             /* matrices available to use.
@@ -79,74 +75,24 @@ async function start(params: IProgramParameters, chunkCache: ChunkCache) {
             this.pack().pipe(fs.createWriteStream("expectedOutput.png"));
         }
 
-        const picMiddleX = Math.floor( this.width / 2);
-        const picMiddleY = Math.floor( this.height / 2);
+        const worker = await PixelWorker.create(this, {x: params.xLeftMost, y: params.yTopMost}, params.doNotOverrideColors, params.fingerprint, params.customEdgesMapImagePath)
 
-        for (let i = 255; i >= 0; i--) {
-            const currentWorkingList = imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
-                // Sort by distance from middle. Start from furtest points
-                const distA = Math.sqrt((a.x - picMiddleX) * (a.x - picMiddleX) + (a.y - picMiddleY) * (a.y - picMiddleY));
-                const distB = Math.sqrt((b.x - picMiddleX) * (b.x - picMiddleX) + (b.y - picMiddleY) * (b.y - picMiddleY));
-                return distA - distB;
-            });
-            while (currentWorkingList.length > 0) {
-                const currentTargetCoords = currentWorkingList.pop();
-                const x = currentTargetCoords!.x;
-                const y = currentTargetCoords!.y;
+        await worker.heartBeat();
+        // await for the full process. Here full image should be finished.
 
-                // For multiple machines:
-                const cordId = x + y * this.width;
-                if ((cordId + params.machineId + 1) % params.machineCount === 0) {
-                    // This one is mine.
-                } else {
-                    // Not my job to paint this one
-                    continue;
-                }
+        // tslint:disable-next-line: no-console
+        console.log("Finished painting!");
 
-                // tslint:disable-next-line: no-bitwise
-                const idx = (this.width * y + x) << 2;
-
-                const r = this.data[idx + 0];
-                const g = this.data[idx + 1];
-                const b = this.data[idx + 2];
-                const a = this.data[idx + 3];
-                if (a === 0) {
-                    // don't draw if alpha is 0
-                    continue;
-                }
-
-                const targetPixel: {x: number, y: number} = { x: (params.xLeftMost + x), y: (params.yTopMost + y) };
-
-                const targetColor = colorConverter.convertActualColor(r, g, b);
-                const currentColor = await chunkCache.getCoordinateColor(targetPixel.x, targetPixel.y);
-                if (!colorConverter.areColorsEqual(targetColor, currentColor) &&
-                    params.doNotOverrideColors.findIndex((c) => c === currentColor) < 0) {
-                    const postPixelResult = await chunkCache.retryPostPixel(targetPixel.x, targetPixel.y, targetColor, params.fingerprint);
-                    // tslint:disable-next-line: no-console
-                    console.log("Just placed " + targetColor + " at " + targetPixel.x + ":" + targetPixel.y);
-
-                    if (postPixelResult.waitSeconds > 50) {
-                        const waitingFor = postPixelResult.waitSeconds - Math.random() * 45;
-
-                        // tslint:disable-next-line: no-console
-                        console.log("Waiting for: " + waitingFor + " seconds");
-                        await timeoutFor((waitingFor) * 1000);
-                    }
-                }
-            }
-        }
-        if (params.constantWatch) {
-            // tslint:disable-next-line: no-console
-            console.log("job done. Waiting for 5 minutes, will check again.");
-            setTimeout(() => {
-                chunkCache = new ChunkCache(params.fingerprint);
-                start(params, chunkCache);
-            }, 300000);
-        } else {
+        if (!params.constantWatch) {
+            // Job is done. Exit the process...
             // tslint:disable-next-line: no-console
             console.log("all done!");
             process.exit(0);
+            return;
         }
+        // Do not exit process, will continue to listen to socket changes and replace non matching pixels.
+        // tslint:disable-next-line: no-console
+        console.log("Continuing to watch over...");
     });
 }
 
