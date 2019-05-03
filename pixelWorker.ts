@@ -37,15 +37,15 @@ export class PixelWorker {
         const picMiddleY = Math.floor( this.image.height / 2);
 
         for (let i = 255; i >= 0; i--) {
-            this.currentWorkingList.push(...this.imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
+            this.imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
                 // Sort by distance from middle. Start from furthest points
                 const distA = Math.sqrt((a.x - picMiddleX) * (a.x - picMiddleX) + (a.y - picMiddleY) * (a.y - picMiddleY));
                 const distB = Math.sqrt((b.x - picMiddleX) * (b.x - picMiddleX) + (b.y - picMiddleY) * (b.y - picMiddleY));
                 return distA - distB;
-            }).map((value) => {
+            }).forEach((value) => {
                 // Convert to global coordinates.
-                return {x: this.startPoint.x + value.x, y: this.startPoint.y + value.y};
-            }));
+                this.currentWorkingList.push({x: this.startPoint.x + value.x, y: this.startPoint.y + value.y});
+            });
         }
     }
 
