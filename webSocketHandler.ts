@@ -7,12 +7,23 @@ export class WebSocketHandler {
     private webSocket?: WebSocket;
     private fingerprint: string;
     private watchingChunks: number[] = [];
+    private retryTimerId?: NodeJS.Timeout;
 
     constructor(fingerprint: string) {
         this.fingerprint = fingerprint;
     }
 
     public connect() {
+        // Continuously retry connection.
+        if (!this.retryTimerId) {
+            this.retryTimerId = setInterval(() => {
+                if (this.webSocket && (this.webSocket.readyState === WebSocket.CONNECTING || this.webSocket.readyState === WebSocket.OPEN)) {
+                    return;
+                }
+                this.connect();
+            }, 5000);
+        }
+        this.webSocket = undefined;
         this.webSocket = new WebSocket(`wss://pixelplanet.fun/ws?fingerprint=${this.fingerprint}`);
         this.webSocket.binaryType = "arraybuffer";
         this.webSocket.onopen = this.onOpen.bind(this);
@@ -36,6 +47,10 @@ export class WebSocketHandler {
     }
 
     private onOpen() {
+        if (this.retryTimerId) {
+            clearInterval(this.retryTimerId);
+            this.retryTimerId = undefined;
+        }
         // tslint:disable-next-line: no-console
         console.log(`Starting listening for changes via websocket`);
         this.watchingChunks.forEach((c) => this.watchChunk(c));
@@ -65,15 +80,16 @@ export class WebSocketHandler {
         }
     }
 
-    private onClose(e: any) {
+    private onClose(event: {wasClean: boolean, code: number, reason: string, target: WebSocket}) {
+        this.webSocket = undefined;
         // tslint:disable-next-line: no-console
-        console.warn("Socket is closed. " + "Reconnect will be attempted in 1 second.", e.reason);
-        setTimeout(() => this.connect(), 1000);
+        console.warn("Socket was closed. Reconnecting...", event.reason);
+        this.connect();
     }
 
-    private onError(err: any) {
+    private onError(event: {error: any, message: string, type: string, target: WebSocket}) {
         // tslint:disable-next-line: no-console
-        console.error(`Socket encountered error, closing socket`, err);
-        this.webSocket!.close();
+        console.error(`Socket encountered error, closing socket`, JSON.stringify(event));
+        event.target.close();
     }
 }
