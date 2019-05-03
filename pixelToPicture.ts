@@ -28,7 +28,14 @@ class PixelToPicture {
     }
 
     public async writeImageToFile(pngData: PNG, fileName: string) {
-        pngData.pack().pipe(fs.createWriteStream(fileName));
+        return new Promise((resolve, reject) => {
+            const fileStream = fs.createWriteStream(fileName)
+            fileStream.on("close", () => {
+                resolve();
+                return;
+            });
+            pngData.pack().pipe(fileStream);
+        });
     }
 }
 
@@ -39,6 +46,10 @@ const x2 = parseInt(process.argv[4], 10);
 const y2 = parseInt(process.argv[5], 10);
 const filename = process.argv[6];
 
-pixToPic.getPixelsToImageData(x1, y1, x2, y2).then((data) => {
-    pixToPic.writeImageToFile(data, filename);
+pixToPic.getPixelsToImageData(x1, y1, x2, y2).then(async (data) => {
+    await pixToPic.writeImageToFile(data, filename);
+    // tslint:disable-next-line: no-console
+    console.log("all done!");
+    process.exit(0);
+    return;
 });
