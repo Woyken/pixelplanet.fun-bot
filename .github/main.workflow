@@ -1,6 +1,6 @@
-workflow "Build" {
-  on = "push"
+workflow "Automatic backup of Europe" {
   resolves = ["Create backup png of the page"]
+  on = "schedule(0 0 * * *)"
 }
 
 action "npm install" {
