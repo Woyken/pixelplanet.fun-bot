@@ -87,7 +87,7 @@ export class WebSocketHandler {
     }
 
     private onError(event: {error: any, message: string, type: string, target: WebSocket}) {
-        logger.logError(`Socket encountered error, closing socket ${JSON.stringify(event)}`);
+        logger.logError(`Socket encountered error, closing socket ${event.message}`);
         event.target.close();
     }
 }
