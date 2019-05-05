@@ -1,6 +1,6 @@
-workflow "Build" {
-  on = "push"
+workflow "Automatic backup of Europe" {
   resolves = ["Create backup png of the page"]
+  on = "schedule(0 0 * * *)"
 }
 
 action "npm install" {
@@ -20,7 +20,7 @@ action "Create backup png of the page" {
   env = {
     BRANCH = "PixelPlanet-png-backup"
     FOLDER = "out"
-    BUILD_SCRIPT = "mkdir out\nxCounter=-32768\nwhile [ $xCounter -lt 32768 ];\ndo\n    yCounter=-32768\n    while [ $yCounter -lt 32768 ];\n    do\n        npx node ./dist/pixelToPicture.js $xCounter $yCounter $((xCounter+4096)) $((yCounter+4096)) \"./out/$((xCounter/4096)).$((yCounter/4096)).png\";\n        ((yCounter=yCounter+4096));\n    done\n    ((xCounter=xCounter+4096));\ndone"
+    BUILD_SCRIPT = "mkdir out\nnpx node ./dist/pixelToPicture.js -4182 -15889 7585 -5727 \"./out/Europe.png\""
   }
   secrets = ["ACCESS_TOKEN"]
 }
