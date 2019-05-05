@@ -2,6 +2,7 @@ import { PNG } from "pngjs";
 import { ChunkCache } from "./chunkCache";
 import colorConverter from "./colorConverter";
 import { ImageProcessor } from "./imageProcessor";
+import logger from "./logger";
 import { timeoutFor } from "./timeoutHelper";
 
 export class PixelWorker {
@@ -107,14 +108,12 @@ export class PixelWorker {
 
             if (pixelNeedsPlacing) {
                 const postPixelResult = await this.chunkCache.retryPostPixel(currentTargetCoords!.x, currentTargetCoords!.y, targetColor, this.fingerprint);
-                // tslint:disable-next-line: no-console
-                console.log("Just placed " + targetColor + " at " + currentTargetCoords!.x + ":" + currentTargetCoords!.y);
+                logger.log("Just placed " + targetColor + " at " + currentTargetCoords!.x + ":" + currentTargetCoords!.y);
 
                 if (postPixelResult.waitSeconds > 50) {
                     const waitingFor = Math.floor(postPixelResult.waitSeconds - Math.random() * 40);
 
-                    // tslint:disable-next-line: no-console
-                    console.log("Waiting for: " + waitingFor + " seconds");
+                    logger.log("Waiting for: " + waitingFor + " seconds");
                     await timeoutFor((waitingFor) * 1000);
                 }
             }

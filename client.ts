@@ -5,6 +5,7 @@ import { ChunkCache } from "./chunkCache";
 import colorConverter from "./colorConverter";
 import { Guid } from "./guid";
 import { ImageProcessor } from "./imageProcessor";
+import logger from "./logger";
 import { PixelWorker } from "./pixelWorker";
 import userInput, { IProgramParameters } from "./userInput";
 
@@ -18,8 +19,7 @@ async function startAndGetUserInput() {
         throw new Error("Parameters couldn't be parsed");
     }
 
-    // tslint:disable-next-line: no-console
-    console.log("-------------------------------------------\nStarting with parameters: " + JSON.stringify(userInput.currentParameters));
+    logger.log("-------------------------------------------\nStarting with parameters: " + JSON.stringify(userInput.currentParameters));
     return start(userInput.currentParameters);
 }
 
@@ -54,7 +54,9 @@ async function start(params: IProgramParameters) {
             const ditheredImg = dither.dither(this.data, this.width);
             const ditheredDataBuffer = Buffer.from(ditheredImg);
             this.data = ditheredDataBuffer;
-            this.pack().pipe(fs.createWriteStream("expectedOutput.png"));
+            this.pack().pipe(fs.createWriteStream("expectedOutput.png")).on("close", () => {
+                logger.log("expectedOutput.png <- Contains the final expected image.");
+            });
         } else {
             // Convert all colors to 24 provided by the website beforehand and output a picture for a preview.
             for (let y = 0; y < this.height; y++) {
@@ -72,27 +74,28 @@ async function start(params: IProgramParameters) {
                     this.data[idx + 2] = resultArr[2];
                 }
             }
-            this.pack().pipe(fs.createWriteStream("expectedOutput.png"));
+            this.pack().pipe(fs.createWriteStream("expectedOutput.png")).on("close", () => {
+                logger.log("expectedOutput.png <- Contains the final expected image.");
+            });
         }
 
-        const worker = await PixelWorker.create(this, {x: params.xLeftMost, y: params.yTopMost}, params.doNotOverrideColors, params.fingerprint, params.customEdgesMapImagePath)
+        const worker = await PixelWorker.create(this, {x: params.xLeftMost, y: params.yTopMost}, params.doNotOverrideColors, params.fingerprint, params.customEdgesMapImagePath);
 
         await worker.heartBeat();
         // await for the full process. Here full image should be finished.
 
-        // tslint:disable-next-line: no-console
-        console.log("Finished painting!");
+        logger.log("Finished painting!");
 
         if (!params.constantWatch) {
             // Job is done. Exit the process...
-            // tslint:disable-next-line: no-console
-            console.log("all done!");
+            logger.log("all done!");
             process.exit(0);
             return;
         }
         // Do not exit process, will continue to listen to socket changes and replace non matching pixels.
-        // tslint:disable-next-line: no-console
-        console.log("Continuing to watch over...");
+        logger.log("Continuing to watch over...");
+    }).on("error", (error) => {
+        logger.logError(`Could not load the picture, make sure image is valid PNG file.\n${error.message}`);
     });
 }
 

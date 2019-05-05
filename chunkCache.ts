@@ -1,6 +1,7 @@
 import axios from "axios";
 import axiosCookieJarSupport from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
+import logger from "./logger";
 import { timeoutFor } from "./timeoutHelper";
 import { WebSocketHandler } from "./webSocketHandler";
 
@@ -47,8 +48,7 @@ export class ChunkCache {
             }
             return res;
         }).catch(async (reason) => {
-            // tslint:disable-next-line: no-console
-            console.log(reason);
+            logger.logWarn(reason);
             await timeoutFor(2000);
             return this.retryPostPixel(x, y, color, fingerprint);
         });
@@ -80,8 +80,7 @@ export class ChunkCache {
         });
 
         if (resp.status !== 200) {
-            // tslint:disable-next-line: no-console
-            console.log("pixel posting responded with " + resp.statusText);
+            logger.logWarn("pixel posting responded with " + resp.statusText);
             throw new Error("response did not succeed, " + resp.statusText);
         } else {
             await this.setPixelColor(x, y, color);
@@ -114,8 +113,7 @@ export class ChunkCache {
         if (!this.cachedChunks[cachedChunkId]) {
             return;
         }
-        // tslint:disable-next-line: no-console
-        console.log(`Pixel updated received: ${chunkX * 256 + pixelIdInChunk % 256 - 32768}:${chunkY * 256 + Math.floor(pixelIdInChunk / 256) - 32768}, color: ${color}`);
+        logger.log(`Pixel updated received: ${chunkX * 256 + pixelIdInChunk % 256 - 32768}:${chunkY * 256 + Math.floor(pixelIdInChunk / 256) - 32768}, color: ${color}`);
         this.cachedChunks[cachedChunkId].writeInt8(color, pixelIdInChunk);
         if (this.onPixelUpdate) {
             this.onPixelUpdate(chunkX * 256 + pixelIdInChunk % 256 - 32768, chunkY * 256 + Math.floor(pixelIdInChunk / 256) - 32768, color);
@@ -124,8 +122,7 @@ export class ChunkCache {
 
     private async retryfetchChunkData(x: number, y: number): Promise<Buffer> {
         return this.fetchChunkData(x, y).catch(async (reason) => {
-            // tslint:disable-next-line: no-console
-            console.log(reason);
+            logger.logWarn(reason);
             await timeoutFor(2000);
             return this.retryfetchChunkData(x, y);
         });
@@ -155,14 +152,12 @@ export class ChunkCache {
 
             case 403:
                 // Forbidden: Either admin has blocked your Ip or you ran into protected pixels. At this point it's better to just stop.
-                // tslint:disable-next-line: no-console
-                console.error("You just into Admin. He has prevented you from placing pixel. STOPPING NOW!");
+                logger.logError("You just into Admin. He has prevented you from placing pixel. STOPPING NOW!");
                 process.exit(0);
                 throw new Error("Stopped by admin");
                 break;
             default:
-                // tslint:disable-next-line: no-console
-                console.log("Chunk gathering responded with " + resp.statusText);
+                logger.logWarn("Chunk gathering responded with " + resp.statusText);
                 throw new Error("response did not succeed");
         }
     }

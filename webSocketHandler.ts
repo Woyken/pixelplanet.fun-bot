@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import logger from "./logger";
 
 export class WebSocketHandler {
 
@@ -51,8 +52,7 @@ export class WebSocketHandler {
             clearInterval(this.retryTimerId);
             this.retryTimerId = undefined;
         }
-        // tslint:disable-next-line: no-console
-        console.log(`Starting listening for changes via websocket`);
+        logger.log(`Starting listening for changes via websocket`);
         this.watchingChunks.forEach((c) => this.watchChunk(c));
     }
 
@@ -82,14 +82,12 @@ export class WebSocketHandler {
 
     private onClose(event: {wasClean: boolean, code: number, reason: string, target: WebSocket}) {
         this.webSocket = undefined;
-        // tslint:disable-next-line: no-console
-        console.warn("Socket was closed. Reconnecting...", event.reason);
+        logger.logWarn(`Socket was closed. Reconnecting... ${event.reason}`);
         this.connect();
     }
 
     private onError(event: {error: any, message: string, type: string, target: WebSocket}) {
-        // tslint:disable-next-line: no-console
-        console.error(`Socket encountered error, closing socket`, JSON.stringify(event));
+        logger.logError(`Socket encountered error, closing socket ${JSON.stringify(event)}`);
         event.target.close();
     }
 }

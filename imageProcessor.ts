@@ -3,6 +3,7 @@ import * as fs from "fs";
 const sobel = require("sobel");
 
 import { PNG } from "pngjs";
+import logger from "./logger";
 
 export class ImageProcessor {
 
@@ -15,6 +16,8 @@ export class ImageProcessor {
                 .on("parsed", async function(this: PNG) {
                     resolve(new ImageProcessor(this));
                     return;
+                }).on("error", (error) => {
+                    logger.logError(`Could not load the customEdgesMap picture, make sure image is valid PNG file.\n${error.message}`);
                 });
             } else {
                 // create out own edges map.
@@ -34,7 +37,9 @@ export class ImageProcessor {
 
     private constructor(imgData: PNG) {
         this.imgData = imgData;
-        imgData.pack().pipe(fs.createWriteStream("currentlyMaking.png"));
+        imgData.pack().pipe(fs.createWriteStream("currentlyMaking.png")).on("close", () => {
+            logger.log("currentlyMaking.png <- Contains the current edges map we're working with.");
+        });
     }
 
     public getIncrementalEdges(intensityValueMin: number, intensityValueMax: number): Array<{x: number, y: number}> {

@@ -1,5 +1,6 @@
 import * as readline from "readline";
 import { Guid } from "./guid";
+import logger from "./logger";
 
 export interface IProgramParameters {
     xLeftMost: number;
@@ -36,8 +37,7 @@ class UserInput {
         let xLeftMost: number;
         if (args[0]) {
             xLeftMost = parseInt(args[0], 10);
-            // tslint:disable-next-line: no-console
-            console.log("x=" + xLeftMost);
+            logger.log("x=" + xLeftMost);
         } else {
             throw new Error("X value is not provided");
         }
@@ -45,8 +45,7 @@ class UserInput {
         let yTopMost: number;
         if (args[1]) {
             yTopMost = parseInt(args[1], 10);
-            // tslint:disable-next-line: no-console
-            console.log("y=" + yTopMost);
+            logger.log("y=" + yTopMost);
         } else {
             throw new Error("Y value is not provided");
         }
@@ -54,8 +53,7 @@ class UserInput {
         let imgPath: string;
         if (args[2]) {
             imgPath = args[2];
-            // tslint:disable-next-line: no-console
-            console.log("imgPath=" + imgPath);
+            logger.log("imgPath=" + imgPath);
         } else {
             throw new Error("Path to image is not provided");
         }
@@ -64,15 +62,13 @@ class UserInput {
         if (args[3]) {
             ditherTheImage = args[3].toLowerCase() === "y";
         }
-        // tslint:disable-next-line: no-console
-        console.log("Dither the image=" + ditherTheImage);
+        logger.log("Dither the image=" + ditherTheImage);
 
         let constantWatch: boolean = false;
         if (args[4]) {
             constantWatch = args[4].toLowerCase() === "y";
         }
-        // tslint:disable-next-line: no-console
-        console.log("constantWatch=" + constantWatch);
+        logger.log("constantWatch=" + constantWatch);
 
         const doNotOverrideColors: number[] = [];
         if (args[5]) {
@@ -87,8 +83,7 @@ class UserInput {
         let customEdgesMapImagePath: string = "";
         if (args[6]) {
             customEdgesMapImagePath = args[6];
-            // tslint:disable-next-line: no-console
-            console.log("customEdgesMapImagePath=" + customEdgesMapImagePath);
+            logger.log("customEdgesMapImagePath=" + customEdgesMapImagePath);
         }
 
         this.currentParameters = {

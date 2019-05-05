@@ -3,6 +3,7 @@ import { PNG } from "pngjs";
 import { ChunkCache } from "./chunkCache";
 import colorConverter from "./colorConverter";
 import { Guid } from "./guid";
+import logger from "./logger";
 
 class PixelToPicture {
     private chunkCache = new ChunkCache(Guid.newGuid());
@@ -29,7 +30,7 @@ class PixelToPicture {
 
     public async writeImageToFile(pngData: PNG, fileName: string) {
         return new Promise((resolve, reject) => {
-            const fileStream = fs.createWriteStream(fileName)
+            const fileStream = fs.createWriteStream(fileName);
             fileStream.on("close", () => {
                 resolve();
                 return;
@@ -48,8 +49,7 @@ const filename = process.argv[6];
 
 pixToPic.getPixelsToImageData(x1, y1, x2, y2).then(async (data) => {
     await pixToPic.writeImageToFile(data, filename);
-    // tslint:disable-next-line: no-console
-    console.log("all done!");
+    logger.log("all done!");
     process.exit(0);
     return;
 });
