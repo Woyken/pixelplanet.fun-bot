@@ -6,18 +6,22 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start-script": "node ./dist/client.js",
-    "start": "npm run build && npm run start-script --",
+    "start": "npm install && npm run build && npm run start-script --",
     "pix2pic": "node ./dist/pixelToPicture.js",
     "build": "tsc"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/adm-zip": "^0.4.32",
+    "@types/fs-extra": "^5.1.0",
     "@types/node": "^11.13.0",
     "@types/pngjs": "^3.3.2",
     "@types/ws": "^6.0.1",
+    "adm-zip": "^0.4.13",
     "axios": "^0.18.0",
     "axios-cookiejar-support": "^0.4.2",
+    "fs-extra": "^7.0.1",
     "image-dither": "^1.0.1",
     "pngjs": "^3.4.0",
     "sobel": "0.0.11",

@@ -1,18 +1,17 @@
 import * as fs from "fs";
 import { PNG } from "pngjs";
-import readline from "readline";
-import { ChunkCache } from "./chunkCache";
 import colorConverter from "./colorConverter";
-import { Guid } from "./guid";
-import { ImageProcessor } from "./imageProcessor";
 import logger from "./logger";
 import { PixelWorker } from "./pixelWorker";
 import userInput, { IProgramParameters } from "./userInput";
+import versionChecker from "./versionChecker";
 
 // tslint:disable-next-line: no-var-requires
 const Dither = require("image-dither");
 
 async function startAndGetUserInput() {
+    await versionChecker.start();
+
     await userInput.gatherProgramParameters();
 
     if (!userInput.currentParameters) {
