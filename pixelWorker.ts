@@ -67,7 +67,7 @@ export class PixelWorker {
         const targetColor = colorConverter.convertActualColor(pixelColorInImage.r, pixelColorInImage.g, pixelColorInImage.b);
         const pixelNeedsPlacing = this.doesPixelNeedReplacing(x, y, targetColor);
         if (pixelNeedsPlacing) {
-            this.currentWorkingList.push({x, y});
+            this.currentWorkingList.unshift({x, y});
             this.heartBeat();
         }
     }
