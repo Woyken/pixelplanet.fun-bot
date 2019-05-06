@@ -55,6 +55,10 @@ export class PixelWorker {
     }
 
     private onPixelUpdate(x: number, y: number, color: number): void {
+        if (x - this.startPoint.x >= this.image.width || y - this.startPoint.y >= this.image.height) {
+            // The pixel is outside of out image, don't care.
+            return;
+        }
         const pixelColorInImage = this.getPixelColorFromImage(x, y);
         if (pixelColorInImage.a === 0) {
             // don't draw if alpha is 0
