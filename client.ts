@@ -23,9 +23,11 @@ async function startAndGetUserInput() {
 }
 
 async function start(params: IProgramParameters) {
+    logger.log("Reading the input picture...");
     fs.createReadStream(params.imgPath)
     .pipe(new PNG())
     .on("parsed", async function(this: PNG) {
+        logger.log(`Done reading. ${this.width} x ${this.height}`);
         if (params.ditherTheImage) {
             // Dither the image (makes photos look better, more realistic with color depth)
             /* matrices available to use.
@@ -78,7 +80,11 @@ async function start(params: IProgramParameters) {
             });
         }
 
+        logger.log("Initializing...");
+
         const worker = await PixelWorker.create(this, {x: params.xLeftMost, y: params.yTopMost}, params.doNotOverrideColors, params.customEdgesMapImagePath);
+
+        logger.log("Ok, let's go!");
 
         await worker.heartBeat();
         // await for the full process. Here full image should be finished.
