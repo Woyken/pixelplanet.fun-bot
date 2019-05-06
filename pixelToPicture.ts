@@ -6,7 +6,7 @@ import { Guid } from "./guid";
 import logger from "./logger";
 
 class PixelToPicture {
-    private chunkCache = new ChunkCache(Guid.newGuid());
+    private chunkCache = new ChunkCache();
 
     public async getPixelsToImageData(xLeft: number, yTop: number, xRight: number, yBottom: number): Promise<PNG> {
         const png = new PNG({height: yBottom - yTop, width: xRight - xLeft});

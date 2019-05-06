@@ -1,5 +1,4 @@
 import * as readline from "readline";
-import { Guid } from "./guid";
 import logger from "./logger";
 
 export interface IProgramParameters {
@@ -7,7 +6,6 @@ export interface IProgramParameters {
     yTopMost: number;
     imgPath: string;
     ditherTheImage: boolean;
-    fingerprint: string;
     constantWatch: boolean;
     doNotOverrideColors: number[];
     customEdgesMapImagePath: string;
@@ -78,8 +76,6 @@ class UserInput {
              });
         }
 
-        const fingerprint = Guid.newGuid();
-
         let customEdgesMapImagePath: string = "";
         if (args[6]) {
             customEdgesMapImagePath = args[6];
@@ -91,7 +87,6 @@ class UserInput {
             customEdgesMapImagePath,
             ditherTheImage,
             doNotOverrideColors,
-            fingerprint,
             imgPath,
             xLeftMost,
             yTopMost,
@@ -118,8 +113,6 @@ class UserInput {
             doNotOverrideColors.push(parseInt(el, 10));
         });
 
-        const fingerprint = Guid.newGuid();
-
         const customEdgesMapImagePath = await this.readString(rl, "[Optional] Provide with custom edges drawing map (Greyscale image showing how to draw the image): ");
 
         this.currentParameters = {
@@ -127,7 +120,6 @@ class UserInput {
             customEdgesMapImagePath,
             ditherTheImage,
             doNotOverrideColors,
-            fingerprint,
             imgPath,
             xLeftMost,
             yTopMost,

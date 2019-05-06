@@ -7,9 +7,9 @@ import { timeoutFor } from "./timeoutHelper";
 
 export class PixelWorker {
 
-    public static async create(image: PNG, startPoint: {x: number, y: number}, doNotOverrideColorList: number[], fingerprint: string, customEdgesMap: string) {
+    public static async create(image: PNG, startPoint: {x: number, y: number}, doNotOverrideColorList: number[], customEdgesMap: string) {
         const imgProcessor = await ImageProcessor.create(image, customEdgesMap);
-        return new PixelWorker(imgProcessor, image, startPoint, doNotOverrideColorList, fingerprint);
+        return new PixelWorker(imgProcessor, image, startPoint, doNotOverrideColorList);
     }
 
     public currentWorkingList: Array<{x: number, y: number}> = [];
@@ -19,16 +19,14 @@ export class PixelWorker {
     private imgProcessor: ImageProcessor;
     private chunkCache: ChunkCache;
     private doNotOverrideColorList: number[];
-    private fingerprint: string;
     private working = false;
 
-    constructor(imgProcessor: ImageProcessor, image: PNG, startPoint: {x: number, y: number}, doNotOverrideColorList: number[], fingerprint: string) {
-        this.chunkCache = new ChunkCache(fingerprint);
+    constructor(imgProcessor: ImageProcessor, image: PNG, startPoint: {x: number, y: number}, doNotOverrideColorList: number[]) {
+        this.chunkCache = new ChunkCache();
         this.imgProcessor = imgProcessor;
         this.image = image;
         this.startPoint = startPoint;
         this.doNotOverrideColorList = doNotOverrideColorList;
-        this.fingerprint = fingerprint;
 
         this.chunkCache.onPixelUpdate = this.onPixelUpdate.bind(this);
 
@@ -107,13 +105,14 @@ export class PixelWorker {
             const pixelNeedsPlacing = await this.doesPixelNeedReplacing(currentTargetCoords!.x, currentTargetCoords!.y, targetColor);
 
             if (pixelNeedsPlacing) {
-                const postPixelResult = await this.chunkCache.retryPostPixel(currentTargetCoords!.x, currentTargetCoords!.y, targetColor, this.fingerprint);
+                const postPixelResult = await this.chunkCache.retryPostPixel(currentTargetCoords!.x, currentTargetCoords!.y, targetColor);
                 logger.log("Just placed " + targetColor + " at " + currentTargetCoords!.x + ":" + currentTargetCoords!.y);
 
                 if (postPixelResult.waitSeconds > 50) {
                     const waitingFor = Math.floor(postPixelResult.waitSeconds - Math.random() * 40);
 
-                    logger.log("Waiting for: " + waitingFor + " seconds");
+                    logger.log(`Pixels left to place/check: ${this.currentWorkingList.length}`);
+                    logger.log(`Waiting for: ${waitingFor} seconds`);
                     await timeoutFor((waitingFor) * 1000);
                 }
             }

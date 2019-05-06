@@ -79,7 +79,7 @@ async function start(params: IProgramParameters) {
             });
         }
 
-        const worker = await PixelWorker.create(this, {x: params.xLeftMost, y: params.yTopMost}, params.doNotOverrideColors, params.fingerprint, params.customEdgesMapImagePath);
+        const worker = await PixelWorker.create(this, {x: params.xLeftMost, y: params.yTopMost}, params.doNotOverrideColors, params.customEdgesMapImagePath);
 
         await worker.heartBeat();
         // await for the full process. Here full image should be finished.

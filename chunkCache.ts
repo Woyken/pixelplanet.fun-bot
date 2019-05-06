@@ -1,6 +1,7 @@
 import axios from "axios";
 import axiosCookieJarSupport from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
+import { Guid } from "./guid";
 import logger from "./logger";
 import { timeoutFor } from "./timeoutHelper";
 import { WebSocketHandler } from "./webSocketHandler";
@@ -12,11 +13,14 @@ export class ChunkCache {
     private ws: WebSocketHandler;
 
     private cookieJar = new CookieJar();
+    private fingerprint: string;
 
-    public constructor(fingerprint: string) {
+    public constructor() {
         axiosCookieJarSupport(axios);
 
-        this.ws = new WebSocketHandler(fingerprint);
+        this.fingerprint = Guid.newGuid();
+
+        this.ws = new WebSocketHandler(this.fingerprint);
         this.ws.onPixelUpdate = this.onUpdatePixelInChunk.bind(this);
         this.ws.connect();
     }
@@ -40,25 +44,25 @@ export class ChunkCache {
         return this.cachedChunks[cachedChunkId].readInt8(xPixelInChunk + (yPixelInChunk * 256));
     }
 
-    public async retryPostPixel(x: number, y: number, color: number, fingerprint: string): Promise<PixelPlanetPixelPostResponse> {
-        return this.postPixel(x, y, color, fingerprint).then(async (res) => {
+    public async retryPostPixel(x: number, y: number, color: number): Promise<PixelPlanetPixelPostResponse> {
+        return this.postPixel(x, y, color).then(async (res) => {
             if (!res.success) {
                 await timeoutFor((res.waitSeconds - 50) * 1000);
-                return this.retryPostPixel(x, y, color, fingerprint);
+                return this.retryPostPixel(x, y, color);
             }
             return res;
         }).catch(async (reason) => {
             logger.logWarn(reason);
             await timeoutFor(2000);
-            return this.retryPostPixel(x, y, color, fingerprint);
+            return this.retryPostPixel(x, y, color);
         });
     }
 
-    public async postPixel(x: number, y: number, color: number, fingerprint: string): Promise<PixelPlanetPixelPostResponse> {
+    public async postPixel(x: number, y: number, color: number): Promise<PixelPlanetPixelPostResponse> {
         const bodyData = {
             a: x + y - 8,
             color,
-            fingerprint,
+            fingerprint: this.fingerprint,
             token: null,
             x,
             y,
