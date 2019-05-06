@@ -85,7 +85,7 @@ export class ChunkCache {
             switch (error.response.status) {
                 case 403:
                     // Forbidden: Either admin has blocked your Ip or you ran into protected pixels. At this point it's better to just stop.
-                    logger.logError("You just into Admin. He has prevented you from placing pixel. STOPPING NOW!");
+                    logger.logError("You just ran into Admin. He has prevented you from placing pixel. STOPPING NOW!");
                     process.exit(1);
                     throw new Error("Stopped by admin");
                 default:
@@ -157,11 +157,11 @@ export class ChunkCache {
             switch (error.response.status) {
                 case 403:
                     // Forbidden: Either admin has blocked your Ip or you ran into protected pixels. At this point it's better to just stop.
-                    logger.logError("You just into Admin. He has prevented you from placing pixel. STOPPING NOW!");
+                    logger.logError("You just ran into Admin. He has prevented you from placing pixel. STOPPING NOW!");
                     process.exit(1);
                     throw new Error("Stopped by admin");
                 default:
-                    throw new Error(`Chunk gathering responded with ${resp.statusText}`);
+                    throw new Error(`Chunk gathering responded with ${error.response.statusText}`);
             }
         });
 
