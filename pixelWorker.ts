@@ -67,8 +67,12 @@ export class PixelWorker {
         const targetColor = colorConverter.convertActualColor(pixelColorInImage.r, pixelColorInImage.g, pixelColorInImage.b);
         const pixelNeedsPlacing = this.doesPixelNeedReplacing(x, y, targetColor);
         if (pixelNeedsPlacing) {
-            this.currentWorkingList.unshift({x, y});
-            this.heartBeat();
+            // Random delay, up to 2 seconds, before adding to list.
+            // Adds a chance that multiple bots won't paint same pixel.
+            setTimeout(() => {
+                this.currentWorkingList.unshift({x, y});
+                this.heartBeat();
+            }, Math.random() * 2 * 1000);
         }
     }
 
