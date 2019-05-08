@@ -5,6 +5,31 @@ import { ImageProcessor } from "./imageProcessor";
 import logger from "./logger";
 import { timeoutFor } from "./timeoutHelper";
 
+async function yieldingLoop(count: number, chunkSize: number, callback: (i: number) => void, onYield: () => void, finished: () => void) {
+    return new Promise<void>((resolve, reject) => {
+        let i = 0;
+        (function chunk() {
+            const end = Math.min(i + chunkSize, count);
+            for ( ; i < end; ++i) {
+                callback(i);
+            }
+            if (i < count) {
+                onYield();
+                setTimeout(chunk, 0);
+            } else {
+                finished();
+                resolve();
+            }
+        })();
+    });
+}
+
+enum WorkerStatus {
+    Initializing,
+    Working,
+    Done,
+}
+
 export class PixelWorker {
 
     public static async create(image: PNG, startPoint: {x: number, y: number}, doNotOverrideColorList: number[], customEdgesMap: string) {
@@ -14,12 +39,14 @@ export class PixelWorker {
 
     public currentWorkingList: Array<{x: number, y: number}> = [];
 
+    private statusState: WorkerStatus = WorkerStatus.Initializing;
     private image: PNG;
     private startPoint: {x: number, y: number};
     private imgProcessor: ImageProcessor;
     private chunkCache: ChunkCache;
     private doNotOverrideColorList: number[];
     private working = false;
+    private onStatusChanged?: () => void;
 
     constructor(imgProcessor: ImageProcessor, image: PNG, startPoint: {x: number, y: number}, doNotOverrideColorList: number[]) {
         this.chunkCache = new ChunkCache();
@@ -29,14 +56,50 @@ export class PixelWorker {
         this.doNotOverrideColorList = doNotOverrideColorList;
 
         this.chunkCache.onPixelUpdate = this.onPixelUpdate.bind(this);
+        this.initializeData();
+    }
 
+    public async heartBeat() {
+        if (!this.working) {
+            await this.doWork();
+        }
+    }
+
+    public async waitForComplete() {
+        return new Promise<void>((resolve, reject) => {
+            this.onStatusChanged = () => {
+                if (this.status === WorkerStatus.Done) {
+                    resolve();
+                    this.onStatusChanged = undefined;
+                    return;
+                }
+            };
+        });
+    }
+
+    private set status(value: WorkerStatus) {
+        this.statusState = value;
+        if (this.onStatusChanged) {
+            this.onStatusChanged();
+        }
+    }
+
+    private get status() {
+        return this.statusState;
+    }
+
+    private async initializeData() {
+        logger.log("Initializing...");
+
+        this.status = WorkerStatus.Initializing;
         // Initialize the working list.
 
         const picMiddleX = Math.floor( this.image.width / 2);
         const picMiddleY = Math.floor( this.image.height / 2);
 
+        // iterate from 0x00 to 0xff of white color through the "edges map"
         for (let i = 0; i <= 255; i++) {
-            this.imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
+            const sortedList = this.imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
                 // If pixel is on grid - take priority.
                 const gridSize = 10;
                 let aIsOnGrid: boolean = false;
@@ -61,17 +124,24 @@ export class PixelWorker {
                 const distA = Math.sqrt((a.x - picMiddleX) * (a.x - picMiddleX) + (a.y - picMiddleY) * (a.y - picMiddleY));
                 const distB = Math.sqrt((b.x - picMiddleX) * (b.x - picMiddleX) + (b.y - picMiddleY) * (b.y - picMiddleY));
                 return distA - distB;
-            }).forEach((value) => {
+            });
+
+            // non blocking loop, will allow pixel placing to start sooner.
+            await yieldingLoop(sortedList.length, 20, (j) => {
+                const value = sortedList[j];
                 // Convert to global coordinates.
                 this.currentWorkingList.push({x: this.startPoint.x + value.x, y: this.startPoint.y + value.y});
+            }, () => {
+                this.heartBeat();
+            }, () => {
+                // current loop is complete
             });
         }
-    }
+        this.status = WorkerStatus.Working;
 
-    public async heartBeat() {
-        if (!this.working) {
-            await this.doWork();
-        }
+        this.heartBeat();
+
+        logger.log("Initialization complete");
     }
 
     private onPixelUpdate(x: number, y: number, color: number): void {
@@ -124,6 +194,10 @@ export class PixelWorker {
     private async doWork() {
         this.working = true;
 
+        if (this.status === WorkerStatus.Done) {
+            this.status = WorkerStatus.Working;
+        }
+
         while (this.currentWorkingList.length > 0) {
             const currentTargetCoords = this.currentWorkingList.pop();
             const pixelColorInImage = this.getPixelColorFromImage(currentTargetCoords!.x, currentTargetCoords!.y);
@@ -148,6 +222,12 @@ export class PixelWorker {
                 }
             }
         }
+
+        // list is empty, job is done.
+        if (this.status === WorkerStatus.Working) {
+            this.status = WorkerStatus.Done;
+        }
+
         this.working = false;
     }
 }

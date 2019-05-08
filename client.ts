@@ -80,13 +80,11 @@ async function start(params: IProgramParameters) {
             });
         }
 
-        logger.log("Initializing...");
-
         const worker = await PixelWorker.create(this, {x: params.xLeftMost, y: params.yTopMost}, params.doNotOverrideColors, params.customEdgesMapImagePath);
 
         logger.log("Ok, let's go!");
 
-        await worker.heartBeat();
+        await worker.waitForComplete();
         // await for the full process. Here full image should be finished.
 
         logger.log("Finished painting!");
