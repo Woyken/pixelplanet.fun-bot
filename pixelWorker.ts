@@ -35,7 +35,7 @@ export class PixelWorker {
         const picMiddleX = Math.floor( this.image.width / 2);
         const picMiddleY = Math.floor( this.image.height / 2);
 
-        for (let i = 255; i >= 0; i--) {
+        for (let i = 0; i <= 255; i++) {
             this.imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
                 // Sort by distance from middle. Start from furthest points
                 const distA = Math.sqrt((a.x - picMiddleX) * (a.x - picMiddleX) + (a.y - picMiddleY) * (a.y - picMiddleY));
