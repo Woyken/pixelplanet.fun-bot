@@ -37,6 +37,26 @@ export class PixelWorker {
 
         for (let i = 0; i <= 255; i++) {
             this.imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
+                // If pixel is on grid - take priority.
+                const gridSize = 5;
+                let aIsOnGrid: boolean = false;
+                let bIsOnGrid: boolean = false;
+                if ((a.x + a.y) % gridSize === 0 || Math.abs(a.x - a.y) % gridSize === 0) {
+                    aIsOnGrid = true;
+                }
+
+                if ((b.x + b.y) % gridSize === 0 || Math.abs(b.x - b.y) % gridSize === 0) {
+                    bIsOnGrid = true;
+                }
+
+                // on grid pixels will have priority over all else.
+                if (aIsOnGrid && !bIsOnGrid) {
+                    return 1;
+                }
+                if (!aIsOnGrid && bIsOnGrid) {
+                    return -1;
+                }
+
                 // Sort by distance from middle. Start from furthest points
                 const distA = Math.sqrt((a.x - picMiddleX) * (a.x - picMiddleX) + (a.y - picMiddleY) * (a.y - picMiddleY));
                 const distB = Math.sqrt((b.x - picMiddleX) * (b.x - picMiddleX) + (b.y - picMiddleY) * (b.y - picMiddleY));
