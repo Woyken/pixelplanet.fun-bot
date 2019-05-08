@@ -38,7 +38,7 @@ export class PixelWorker {
         for (let i = 0; i <= 255; i++) {
             this.imgProcessor.getIncrementalEdges(i, i).sort((a, b) => {
                 // If pixel is on grid - take priority.
-                const gridSize = 5;
+                const gridSize = 10;
                 let aIsOnGrid: boolean = false;
                 let bIsOnGrid: boolean = false;
                 if ((a.x + a.y) % gridSize === 0 || Math.abs(a.x - a.y) % gridSize === 0) {
