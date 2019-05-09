@@ -14,13 +14,13 @@ async function yieldingLoop(count: number, chunkSize: number, callback: (i: numb
                 await callback(i);
             }
             if (i < count) {
-                onYield();
+                await onYield();
                 setTimeout(chunk, 0);
             } else {
                 finished();
                 resolve();
             }
-        })();
+        })().catch();
     });
 }
 
@@ -56,7 +56,9 @@ export class PixelWorker {
         this.doNotOverrideColorList = doNotOverrideColorList;
 
         this.chunkCache.onPixelUpdate = this.onPixelUpdate.bind(this);
-        this.initializeData();
+        this.initializeData().catch(() => {
+            logger.logError("Initialization has failed!");
+        });
     }
 
     public async heartBeat() {
@@ -135,14 +137,14 @@ export class PixelWorker {
                     this.currentWorkingList.push(pixelCoords);
                 }
             }, async () => {
-                this.heartBeat();
+                this.heartBeat().catch();
             }, () => {
                 // current loop is complete
             });
         }
         this.status = WorkerStatus.Working;
 
-        this.heartBeat();
+        this.heartBeat().catch();
 
         logger.log("Initialization complete");
     }
@@ -153,7 +155,7 @@ export class PixelWorker {
             // Adds a chance that multiple bots won't paint same pixel.
             setTimeout(() => {
                 this.currentWorkingList.unshift({x, y});
-                this.heartBeat();
+                this.heartBeat().catch();
             }, Math.random() * 2 * 1000);
         }
     }
