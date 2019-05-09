@@ -5,13 +5,13 @@ import { ImageProcessor } from "./imageProcessor";
 import logger from "./logger";
 import { timeoutFor } from "./timeoutHelper";
 
-async function yieldingLoop(count: number, chunkSize: number, callback: (i: number) => void, onYield: () => void, finished: () => void) {
+async function yieldingLoop(count: number, chunkSize: number, callback: (i: number) => Promise<void>, onYield: () => Promise<void>, finished: () => void) {
     return new Promise<void>((resolve, reject) => {
         let i = 0;
-        (function chunk() {
+        (async function chunk() {
             const end = Math.min(i + chunkSize, count);
             for ( ; i < end; ++i) {
-                callback(i);
+                await callback(i);
             }
             if (i < count) {
                 onYield();
@@ -127,11 +127,14 @@ export class PixelWorker {
             });
 
             // non blocking loop, will allow pixel placing to start sooner.
-            await yieldingLoop(sortedList.length, 20, (j) => {
+            await yieldingLoop(sortedList.length, 20, async (j) => {
                 const value = sortedList[j];
                 // Convert to global coordinates.
-                this.currentWorkingList.push({x: this.startPoint.x + value.x, y: this.startPoint.y + value.y});
-            }, () => {
+                const pixelCoords = {x: this.startPoint.x + value.x, y: this.startPoint.y + value.y};
+                if (await this.shouldPlaceGlobalPixel(pixelCoords.x, pixelCoords.y)) {
+                    this.currentWorkingList.push(pixelCoords);
+                }
+            }, async () => {
                 this.heartBeat();
             }, () => {
                 // current loop is complete
@@ -144,22 +147,8 @@ export class PixelWorker {
         logger.log("Initialization complete");
     }
 
-    private onPixelUpdate(x: number, y: number, color: number): void {
-        if (x - this.startPoint.x >= this.image.width ||
-            y - this.startPoint.y >= this.image.height ||
-            x - this.startPoint.x < 0 ||
-            y - this.startPoint.y < 0) {
-            // The pixel is outside of our image, don't care.
-            return;
-        }
-        const pixelColorInImage = this.getPixelColorFromImage(x, y);
-        if (pixelColorInImage.a === 0) {
-            // don't draw if alpha is 0
-            return;
-        }
-        const targetColor = colorConverter.convertActualColor(pixelColorInImage.r, pixelColorInImage.g, pixelColorInImage.b);
-        const pixelNeedsPlacing = this.doesPixelNeedReplacing(x, y, targetColor);
-        if (pixelNeedsPlacing) {
+    private async onPixelUpdate(x: number, y: number, color: number): Promise<void> {
+        if (await this.shouldPlaceGlobalPixel(x, y)) {
             // Random delay, up to 2 seconds, before adding to list.
             // Adds a chance that multiple bots won't paint same pixel.
             setTimeout(() => {
@@ -167,6 +156,24 @@ export class PixelWorker {
                 this.heartBeat();
             }, Math.random() * 2 * 1000);
         }
+    }
+
+    private async shouldPlaceGlobalPixel(x: number, y: number): Promise<boolean> {
+        if (x - this.startPoint.x >= this.image.width ||
+            y - this.startPoint.y >= this.image.height ||
+            x - this.startPoint.x < 0 ||
+            y - this.startPoint.y < 0) {
+            // The pixel is outside of our image, don't care.
+            return false;
+        }
+        const pixelColorInImage = this.getPixelColorFromImage(x, y);
+        if (pixelColorInImage.a === 0) {
+            // don't draw if alpha is 0
+            return false;
+        }
+        const targetColor = colorConverter.convertActualColor(pixelColorInImage.r, pixelColorInImage.g, pixelColorInImage.b);
+        const pixelNeedsPlacing = this.doesPixelNeedReplacing(x, y, targetColor);
+        return pixelNeedsPlacing;
     }
 
     private async doesPixelNeedReplacing(x: number, y: number, color: number): Promise<boolean> {
