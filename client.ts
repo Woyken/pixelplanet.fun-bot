@@ -10,7 +10,13 @@ import versionChecker from "./versionChecker";
 const Dither = require("image-dither");
 
 async function startAndGetUserInput() {
+    // Every once in a while check for updates. So it will startup with update installed next time;
+    setInterval(() => {
+        versionChecker.start();
+    }, /* Every 20 mins */ 1000 * 60 * 20);
+
     await versionChecker.start();
+    // update logging will be the first thing that shows up after start.
 
     await userInput.gatherProgramParameters();
 
