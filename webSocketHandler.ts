@@ -25,7 +25,7 @@ export class WebSocketHandler {
             }, 5000);
         }
         this.webSocket = undefined;
-        this.webSocket = new WebSocket(`wss://pixelplanet.fun/ws?fingerprint=${this.fingerprint}`);
+        this.webSocket = new WebSocket(`wss://pixelplanet.fun/ws?fingerprint=${this.fingerprint}`, {origin: "https://pixelpixel.fun"});
         this.webSocket.binaryType = "arraybuffer";
         this.webSocket.onopen = this.onOpen.bind(this);
         this.webSocket.onmessage = this.onMessage.bind(this);
