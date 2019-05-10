@@ -27,7 +27,10 @@ action "Create backup png of the page" {
 
 workflow "On push - Create artifact" {
   on = "push"
-  resolves = ["On push - push artifact"]
+  resolves = [
+    "On push - upload archive to release",
+    "On push - npm run build",
+  ]
 }
 
 action "On push - npm install" {
@@ -41,15 +44,25 @@ action "On push - npm run build" {
   needs = ["On push - npm install"]
 }
 
-action "On push - Archive output" {
+action "On push - create archive" {
   uses = "juankaram/archive-action@master"
-  args = "zip -r output.zip ./dist ./node_modules ./README.md ./package.json"
   needs = ["On push - npm run build"]
+  args = "sh -l -c PACKAGE_VERSION=$(npm version | grep pixelplanet.fun-bot | head -1 | awk -F: '{ print $2 }' | sed \"s/[ \\',]//g\") && zip -r output.zip ./dist ./node_modules ./README.md ./package.json"
 }
 
-action "On push - push artifact" {
-  uses = "JasonEtco/upload-to-release@master"
+action "On push - create release" {
+  uses = "frankjuniorr/github-create-release-action@master"
+  needs = ["On push - create archive"]
   secrets = ["GITHUB_TOKEN"]
+  env = {
+    VERSION = "$PACKAGE_VERSION"
+    DESCRIPTION = "Just another release"
+  }
+}
+
+action "On push - upload archive to release" {
+  uses = "JasonEtco/upload-to-release@master"
+  needs = ["On push - create release"]
   args = "output.zip"
-  needs = ["On push - Archive output"]
+  secrets = ["GITHUB_TOKEN"]
 }
