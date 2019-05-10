@@ -47,7 +47,7 @@ action "On push - npm run build" {
 action "On push - create archive" {
   uses = "juankaram/archive-action@master"
   needs = ["On push - npm run build"]
-  args = "sh -l -c PACKAGE_VERSION=$(sed -nE 's/^\\s*\"version\": \"(.*?)\",$/\\1/p' package.json) && zip -r output.zip ./dist ./node_modules ./README.md ./package.json"
+  args = "sh -l -c PACKAGE_VERSION=$(npm version | grep pixelplanet.fun-bot | head -1 | awk -F: '{ print $2 }' | sed \"s/[ \\',]//g\") && zip -r output.zip ./dist ./node_modules ./README.md ./package.json"
 }
 
 action "On push - create release" {
