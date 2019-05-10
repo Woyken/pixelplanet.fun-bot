@@ -48,7 +48,8 @@ action "On push - npm run build" {
 action "Get package version" {
   uses = "actions/npm@59b64a598378f31e49cb76f27d6f3312b582f680"
   needs = ["On push - npm run build"]
-  runs = "PACKAGE_VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g')"
+  runs = "sh -l -c"
+  args = "PACKAGE_VERSION=$(cat package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g')"
 }
 
 action "juankaram/archive-action-1" {
