@@ -28,7 +28,7 @@ action "Create backup png of the page" {
 workflow "On push - Create artifact" {
   on = "push"
   resolves = [
-    "JasonEtco/upload-to-release",
+    "On push - upload archive to release",
     "On push - npm run build",
   ]
 }
@@ -52,7 +52,7 @@ action "On push - create archive" {
 
 action "On push - create release" {
   uses = "frankjuniorr/github-create-release-action@master"
-  needs = ["juankaram/archive-action-1"]
+  needs = ["On push - create archive"]
   secrets = ["GITHUB_TOKEN"]
   env = {
     VERSION = "$PACKAGE_VERSION"
@@ -62,7 +62,7 @@ action "On push - create release" {
 
 action "On push - upload archive to release" {
   uses = "JasonEtco/upload-to-release@master"
-  needs = ["frankjuniorr/github-create-release-action-1"]
+  needs = ["On push - create release"]
   args = "output.zip"
   secrets = ["GITHUB_TOKEN"]
 }
