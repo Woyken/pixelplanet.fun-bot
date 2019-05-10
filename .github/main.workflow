@@ -28,7 +28,6 @@ action "Create backup png of the page" {
 workflow "On push - Create artifact" {
   on = "push"
   resolves = [
-    "Get package version",
     "JasonEtco/upload-to-release",
     "On push - npm run build",
   ]
@@ -45,20 +44,13 @@ action "On push - npm run build" {
   needs = ["On push - npm install"]
 }
 
-action "Get package version" {
-  uses = "actions/npm@59b64a598378f31e49cb76f27d6f3312b582f680"
-  needs = ["On push - npm run build"]
-  runs = "sh -l -c"
-  args = "PACKAGE_VERSION=$(sed -nE 's/^\\s*\"version\": \"(.*?)\",$/\\1/p' package.json)"
-}
-
-action "juankaram/archive-action-1" {
+action "On push - create archive" {
   uses = "juankaram/archive-action@master"
-  needs = ["Get package version"]
-  args = "zip -r output.zip ./dist ./node_modules ./README.md ./package.json"
+  needs = ["On push - npm run build"]
+  args = "PACKAGE_VERSION=$(sed -nE 's/^\\s*\"version\": \"(.*?)\",$/\\1/p' package.json) && zip -r output.zip ./dist ./node_modules ./README.md ./package.json"
 }
 
-action "frankjuniorr/github-create-release-action-1" {
+action "On push - create release" {
   uses = "frankjuniorr/github-create-release-action@master"
   needs = ["juankaram/archive-action-1"]
   secrets = ["GITHUB_TOKEN"]
@@ -68,7 +60,7 @@ action "frankjuniorr/github-create-release-action-1" {
   }
 }
 
-action "JasonEtco/upload-to-release" {
+action "On push - upload archive to release" {
   uses = "JasonEtco/upload-to-release@master"
   needs = ["frankjuniorr/github-create-release-action-1"]
   args = "output.zip"
