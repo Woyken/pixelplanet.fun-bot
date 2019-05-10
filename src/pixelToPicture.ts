@@ -1,15 +1,18 @@
-import * as fs from "fs";
-import { PNG } from "pngjs";
-import { ChunkCache } from "./chunkCache";
-import colorConverter from "./colorConverter";
-import { Guid } from "./guid";
-import logger from "./logger";
+import * as fs from 'fs';
+import { PNG } from 'pngjs';
+import { ChunkCache } from './chunkCache';
+import colorConverter from './colorConverter';
+import logger from './logger';
 
 class PixelToPicture {
     private chunkCache = new ChunkCache();
 
-    public async getPixelsToImageData(xLeft: number, yTop: number, xRight: number, yBottom: number): Promise<PNG> {
-        const png = new PNG({height: yBottom - yTop, width: xRight - xLeft});
+    public async getPixelsToImageData(xLeft: number,
+                                      yTop: number,
+                                      xRight: number,
+                                      yBottom: number,
+        ): Promise<PNG> {
+        const png = new PNG({ height: yBottom - yTop, width: xRight - xLeft });
         for (let y = 0; y < xRight - xLeft; y++) {
             for (let x = 0; x < png.width; x++) {
 
@@ -31,7 +34,7 @@ class PixelToPicture {
     public async writeImageToFile(pngData: PNG, fileName: string) {
         return new Promise((resolve, reject) => {
             const fileStream = fs.createWriteStream(fileName);
-            fileStream.on("close", () => {
+            fileStream.on('close', () => {
                 resolve();
                 return;
             });
@@ -49,7 +52,7 @@ const filename = process.argv[6];
 
 pixToPic.getPixelsToImageData(x1, y1, x2, y2).then(async (data) => {
     await pixToPic.writeImageToFile(data, filename);
-    logger.log("all done!");
+    logger.log('all done!');
     process.exit(0);
     return;
-});
+}).catch();

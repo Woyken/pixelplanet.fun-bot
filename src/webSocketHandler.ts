@@ -1,11 +1,14 @@
-import WebSocket from "ws";
-import logger from "./logger";
+import ws from 'ws';
+import logger from './logger';
 
 export class WebSocketHandler {
 
-    public onPixelUpdate?: (xChunk: number, yChunk: number, pixelIdInChunk: number, color: number) => void;
+    public onPixelUpdate?: (xChunk: number,
+                            yChunk: number,
+                            pixelIdInChunk: number,
+                            color: number) => void;
 
-    private webSocket?: WebSocket;
+    private webSocket?: ws;
     private fingerprint: string;
     private watchingChunks: number[] = [];
     private retryTimerId?: NodeJS.Timeout;
@@ -18,15 +21,18 @@ export class WebSocketHandler {
         // Continuously retry connection.
         if (!this.retryTimerId) {
             this.retryTimerId = setInterval(() => {
-                if (this.webSocket && (this.webSocket.readyState === WebSocket.CONNECTING || this.webSocket.readyState === WebSocket.OPEN)) {
+                if (this.webSocket &&
+                    (this.webSocket.readyState === ws.CONNECTING ||
+                        this.webSocket.readyState === ws.OPEN)) {
                     return;
                 }
                 this.connect();
-            }, 5000);
+            },                              5000);
         }
         this.webSocket = undefined;
-        this.webSocket = new WebSocket(`wss://pixelplanet.fun/ws?fingerprint=${this.fingerprint}`, {origin: "https://pixelpixel.fun"});
-        this.webSocket.binaryType = "arraybuffer";
+        this.webSocket = new ws(`wss://pixelplanet.fun/ws?fingerprint=${this.fingerprint}`,
+                                { origin: 'https://pixelpixel.fun' });
+        this.webSocket.binaryType = 'arraybuffer';
         this.webSocket.onopen = this.onOpen.bind(this);
         this.webSocket.onmessage = this.onMessage.bind(this);
         this.webSocket.onclose = this.onClose.bind(this);
@@ -38,11 +44,13 @@ export class WebSocketHandler {
         const view = new DataView(buffer);
         view.setInt8(0, 0xA1);
         view.setInt16(1, chunkId);
-        if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
+        if (this.webSocket && this.webSocket.readyState === ws.OPEN) {
             this.webSocket.send(buffer);
         }
 
-        if (this.watchingChunks.findIndex((v) => v === chunkId) < 0) {
+        if (this.watchingChunks.findIndex((v) => {
+            return v === chunkId;
+        }) < 0) {
             this.watchingChunks.push(chunkId);
         }
     }
@@ -52,11 +60,13 @@ export class WebSocketHandler {
             clearInterval(this.retryTimerId);
             this.retryTimerId = undefined;
         }
-        logger.log(`Starting listening for changes via websocket`);
-        this.watchingChunks.forEach((c) => this.watchChunk(c));
+        logger.log('Starting listening for changes via websocket');
+        this.watchingChunks.forEach((c) => {
+            return this.watchChunk(c);
+        });
     }
 
-    private onMessage(ev: { data: any; type: string; target: WebSocket; }) {
+    private onMessage(ev: { data: any; type: string; target: ws; }) {
         const buffer = ev.data as Buffer;
         if (buffer.byteLength === 0) {
             return;
@@ -65,7 +75,7 @@ export class WebSocketHandler {
         const opcode = data.getUint8(0);
 
         switch (opcode) {
-          case 0xC1: // PIXEL UPDATE
+        case 0xC1: // PIXEL UPDATE
             const chunkX = data.getInt16(1);
             const chunkY = data.getInt16(3);
             const pixelIdInChunk = data.getUint16(5);
@@ -75,18 +85,18 @@ export class WebSocketHandler {
                 this.onPixelUpdate(chunkX, chunkY, pixelIdInChunk, color);
             }
             break;
-          default:
+        default:
             break;
         }
     }
 
-    private onClose(event: {wasClean: boolean, code: number, reason: string, target: WebSocket}) {
+    private onClose(event: {wasClean: boolean, code: number, reason: string, target: ws}) {
         this.webSocket = undefined;
         logger.logWarn(`Socket was closed. Reconnecting... ${event.reason}`);
         this.connect();
     }
 
-    private onError(event: {error: any, message: string, type: string, target: WebSocket}) {
+    private onError(event: {error: any, message: string, type: string, target: ws}) {
         logger.logError(`Socket encountered error, closing socket ${event.message}`);
         event.target.close();
     }
