@@ -4,6 +4,7 @@ import colorConverter from './colorConverter';
 import { ImageProcessor } from './imageProcessor';
 import logger from './logger';
 import { timeoutFor } from './timeoutHelper';
+import { SpecialExclusionHandler } from './specialExclusionHandler';
 
 async function yieldingLoop(
     count: number,
@@ -43,7 +44,12 @@ export class PixelWorker {
                                doNotOverrideColorList: number[],
                                customEdgesMap: string) {
         const imgProcessor = await ImageProcessor.create(image, customEdgesMap);
-        return new PixelWorker(imgProcessor, image, startPoint, doNotOverrideColorList);
+        const specialExclusion = await SpecialExclusionHandler.create();
+        return new PixelWorker(imgProcessor,
+                               specialExclusion,
+                               image,
+                               startPoint,
+                               doNotOverrideColorList);
     }
 
     public currentWorkingList: { x: number, y: number }[] = [];
@@ -53,15 +59,18 @@ export class PixelWorker {
     private startPoint: { x: number, y: number };
     private imgProcessor: ImageProcessor;
     private chunkCache: ChunkCache;
+    private specialExclusions: SpecialExclusionHandler;
     private doNotOverrideColorList: number[];
     private working = false;
     private onStatusChanged?: () => void;
 
     constructor(imgProcessor: ImageProcessor,
+                specialExclusion: SpecialExclusionHandler,
                 image: PNG,
                 startPoint: { x: number, y: number },
                 doNotOverrideColorList: number[]) {
         this.chunkCache = new ChunkCache();
+        this.specialExclusions = specialExclusion;
         this.imgProcessor = imgProcessor;
         this.image = image;
         this.startPoint = startPoint;
@@ -204,6 +213,9 @@ export class PixelWorker {
     }
 
     private async doesPixelNeedReplacing(x: number, y: number, color: number): Promise<boolean> {
+        if (this.specialExclusions.isPixelExcluded(x, y)) {
+            return false;
+        }
         const currentColor = await this.chunkCache.getCoordinateColor(x, y);
         // Pixel current color doesn't match and it is not found in the do not override list.
         return !colorConverter.areColorsEqual(color, currentColor) &&

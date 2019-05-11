@@ -2,6 +2,7 @@ import admZip from 'adm-zip';
 import axios from 'axios';
 import * as fs from 'fs-extra';
 import logger from './logger';
+import shelljs from 'shelljs';
 
 class VersionChecker {
     public async start(): Promise<void> {
@@ -24,7 +25,12 @@ class VersionChecker {
                           '.',
                           { overwrite: true, recursive: true });
             await fs.remove('./update');
-            logger.log('Update complete. Will be applied on next start.');
+            logger.log('Update complete. Restarting...');
+            shelljs.exec(`npm start -- ${process.argv.slice(2).map((value) => {
+                return `"${value}"`;
+            }).join(' ')
+            }`,          { async: false });
+
         } else {
             logger.log('Already up to date');
         }
