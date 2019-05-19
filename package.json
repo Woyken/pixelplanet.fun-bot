@@ -1,39 +1,39 @@
 {
-  "name": "pixelplanet.fun-bot",
-  "version": "1.0.10",
-  "description": "",
-  "main": "dist/client.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start-script": "node ./dist/client.js",
-    "start": "npm install && npm run build && npm run start-script --",
-    "pix2pic": "node ./dist/pixelToPicture.js",
-    "build": "tsc"
-  },
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "@types/adm-zip": "^0.4.32",
-    "@types/fs-extra": "^5.1.0",
-    "@types/node": "^11.13.0",
-    "@types/pngjs": "^3.3.2",
-    "@types/shelljs": "^0.8.5",
-    "@types/ws": "^6.0.1",
-    "adm-zip": "^0.4.13",
-    "axios": "^0.18.0",
-    "axios-cookiejar-support": "^0.4.2",
-    "fs-extra": "^7.0.1",
-    "image-dither": "^1.0.1",
-    "pngjs": "^3.4.0",
-    "shelljs": "^0.8.3",
-    "sobel": "0.0.11",
-    "tough-cookie": "^3.0.1",
-    "tslint": "^5.15.0",
-    "typescript": "^3.4.2",
-    "vorpal": "^1.12.0",
-    "ws": "^6.2.1"
-  },
-  "devDependencies": {
-    "tslint-config-airbnb": "^5.11.1"
-  }
+    "name": "pixelplanet.fun-bot",
+    "version": "1.0.11",
+    "description": "",
+    "main": "dist/client.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start-script": "node ./dist/client.js",
+        "start": "npm install && npm run build && npm run start-script --",
+        "pix2pic": "node ./dist/pixelToPicture.js",
+        "build": "tsc"
+    },
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@types/adm-zip": "^0.4.32",
+        "@types/fs-extra": "^5.1.0",
+        "@types/node": "^11.13.0",
+        "@types/pngjs": "^3.3.2",
+        "@types/shelljs": "^0.8.5",
+        "@types/ws": "^6.0.1",
+        "adm-zip": "^0.4.13",
+        "axios": "^0.18.0",
+        "axios-cookiejar-support": "^0.4.2",
+        "fs-extra": "^7.0.1",
+        "image-dither": "^1.0.1",
+        "pngjs": "^3.4.0",
+        "shelljs": "^0.8.3",
+        "sobel": "0.0.11",
+        "tough-cookie": "^3.0.1",
+        "tslint": "^5.15.0",
+        "typescript": "^3.4.2",
+        "vorpal": "^1.12.0",
+        "ws": "^6.2.1"
+    },
+    "devDependencies": {
+        "tslint-config-airbnb": "^5.11.1"
+    }
 }
