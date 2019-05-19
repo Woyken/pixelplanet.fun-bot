@@ -40,9 +40,17 @@ async function start(params: IProgramParameters) {
     let pictureStream: ReadStream | fs.ReadStream | undefined;
     if (isValidURL(params.imgPath)) {
         logger.log('Input is URL, downloading...');
-        const pictureResponse = await axios.get<ReadStream>(params.imgPath, {
-            responseType: 'stream',
-        });
+        const pictureResponse = await axios
+            .get<ReadStream>(params.imgPath, {
+                responseType: 'stream',
+            })
+            .catch(() => {});
+        if (!pictureResponse) {
+            // error.
+            logger.logError('Can not download picture from provided url!');
+            return;
+        }
+
         pictureStream = pictureResponse.data;
         logger.log('Done downloading.');
     } else {
@@ -163,6 +171,9 @@ async function startProgram(params: IProgramParameters, png: PNG) {
 
 function isValidURL(url: string): boolean {
     try {
+        if (!url.startsWith('http')) {
+            return false;
+        }
         const temp = new URL(url);
         return true;
     } catch (e) {
