@@ -12,14 +12,14 @@ interface RemoteDataExclusion {
 }
 
 export class SpecialExclusionHandler {
-// tslint:disable-next-line: max-line-length
-    private link: string = 'https://dl.dropboxusercontent.com/s/bqggjhtz5rx9leo/pixelBotExclusions.json';
+    private link: string =
+        'https://dl.dropboxusercontent.com/s/bqggjhtz5rx9leo/pixelBotExclusions.json';
     private cachedData?: RemoteData;
 
     private constructor() {
         setInterval(async () => {
             await this.updateData();
-        },          1000 * 60 * 5);
+        }, 1000 * 60 * 5);
     }
 
     public static async create(): Promise<SpecialExclusionHandler> {
@@ -46,7 +46,11 @@ export class SpecialExclusionHandler {
         return false;
     }
 
-    private isInBounds(x: number, y: number, exclusion: RemoteDataExclusion): boolean {
+    private isInBounds(
+        x: number,
+        y: number,
+        exclusion: RemoteDataExclusion,
+    ): boolean {
         if (x < exclusion.x1) {
             return false;
         }

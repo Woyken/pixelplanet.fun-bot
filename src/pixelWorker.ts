@@ -11,8 +11,8 @@ async function yieldingLoop(
     chunkSize: number,
     callback: (i: number) => Promise<void>,
     onYield: () => Promise<void>,
-    finished: () => void) {
-
+    finished: () => void,
+) {
     return new Promise<void>((resolve, reject) => {
         let i = 0;
         (async function chunk() {
@@ -37,26 +37,35 @@ enum WorkerStatus {
     Done,
 }
 
-export class PixelWorker {
+interface ToPlacePixelData {
+    x: number;
+    y: number;
+    // color: number;
+}
 
-    public static async create(image: PNG,
-                               startPoint: { x: number, y: number },
-                               doNotOverrideColorList: number[],
-                               customEdgesMap: string) {
+export class PixelWorker {
+    public static async create(
+        image: PNG,
+        startPoint: { x: number; y: number },
+        doNotOverrideColorList: number[],
+        customEdgesMap: string,
+    ) {
         const imgProcessor = await ImageProcessor.create(image, customEdgesMap);
         const specialExclusion = await SpecialExclusionHandler.create();
-        return new PixelWorker(imgProcessor,
-                               specialExclusion,
-                               image,
-                               startPoint,
-                               doNotOverrideColorList);
+        return new PixelWorker(
+            imgProcessor,
+            specialExclusion,
+            image,
+            startPoint,
+            doNotOverrideColorList,
+        );
     }
 
-    public currentWorkingList: { x: number, y: number }[] = [];
+    public currentWorkingList: ToPlacePixelData[] = [];
 
     private statusState: WorkerStatus = WorkerStatus.Initializing;
     private image: PNG;
-    private startPoint: { x: number, y: number };
+    private startPoint: { x: number; y: number };
     private imgProcessor: ImageProcessor;
     private chunkCache: ChunkCache;
     private specialExclusions: SpecialExclusionHandler;
@@ -64,11 +73,13 @@ export class PixelWorker {
     private working = false;
     private onStatusChanged?: () => void;
 
-    constructor(imgProcessor: ImageProcessor,
-                specialExclusion: SpecialExclusionHandler,
-                image: PNG,
-                startPoint: { x: number, y: number },
-                doNotOverrideColorList: number[]) {
+    constructor(
+        imgProcessor: ImageProcessor,
+        specialExclusion: SpecialExclusionHandler,
+        image: PNG,
+        startPoint: { x: number; y: number },
+        doNotOverrideColorList: number[],
+    ) {
         this.chunkCache = new ChunkCache();
         this.specialExclusions = specialExclusion;
         this.imgProcessor = imgProcessor;
@@ -129,11 +140,17 @@ export class PixelWorker {
                     const gridSize = 10;
                     let aIsOnGrid: boolean = false;
                     let bIsOnGrid: boolean = false;
-                    if ((a.x + a.y) % gridSize === 0 || Math.abs(a.x - a.y) % gridSize === 0) {
+                    if (
+                        (a.x + a.y) % gridSize === 0 ||
+                        Math.abs(a.x - a.y) % gridSize === 0
+                    ) {
                         aIsOnGrid = true;
                     }
 
-                    if ((b.x + b.y) % gridSize === 0 || Math.abs(b.x - b.y) % gridSize === 0) {
+                    if (
+                        (b.x + b.y) % gridSize === 0 ||
+                        Math.abs(b.x - b.y) % gridSize === 0
+                    ) {
                         bIsOnGrid = true;
                     }
 
@@ -148,31 +165,42 @@ export class PixelWorker {
                     // Sort by distance from middle. Start from furthest points
                     const distA = Math.sqrt(
                         (a.x - picMiddleX) * (a.x - picMiddleX) +
-                        (a.y - picMiddleY) * (a.y - picMiddleY),
+                            (a.y - picMiddleY) * (a.y - picMiddleY),
                     );
                     const distB = Math.sqrt(
                         (b.x - picMiddleX) * (b.x - picMiddleX) +
-                        (b.y - picMiddleY) * (b.y - picMiddleY),
+                            (b.y - picMiddleY) * (b.y - picMiddleY),
                     );
                     return distA - distB;
                 });
 
             // non blocking loop, will allow pixel placing to start sooner.
-            await yieldingLoop(sortedList.length, 20, async (j) => {
-                const value = sortedList[j];
-                // Convert to global coordinates.
-                const pixelCoords = {
-                    x: this.startPoint.x + value.x,
-                    y: this.startPoint.y + value.y,
-                };
-                if (await this.shouldPlaceGlobalPixel(pixelCoords.x, pixelCoords.y)) {
-                    this.currentWorkingList.push(pixelCoords);
-                }
-            },                 async () => {
-                this.heartBeat().catch();
-            },                 () => {
-                // current loop is complete
-            });
+            await yieldingLoop(
+                sortedList.length,
+                20,
+                async (j) => {
+                    const value = sortedList[j];
+                    // Convert to global coordinates.
+                    const pixelCoords = {
+                        x: this.startPoint.x + value.x,
+                        y: this.startPoint.y + value.y,
+                    };
+                    if (
+                        await this.shouldPlaceGlobalPixel(
+                            pixelCoords.x,
+                            pixelCoords.y,
+                        )
+                    ) {
+                        this.currentWorkingList.push(pixelCoords);
+                    }
+                },
+                async () => {
+                    this.heartBeat().catch();
+                },
+                () => {
+                    // current loop is complete
+                },
+            );
         }
         this.status = WorkerStatus.Working;
 
@@ -181,22 +209,31 @@ export class PixelWorker {
         logger.log('Initialization complete');
     }
 
-    private async onPixelUpdate(x: number, y: number, color: number): Promise<void> {
+    private async onPixelUpdate(
+        x: number,
+        y: number,
+        color: number,
+    ): Promise<void> {
         if (await this.shouldPlaceGlobalPixel(x, y)) {
             // Random delay, up to 2 seconds, before adding to list.
             // Adds a chance that multiple bots won't paint same pixel.
             setTimeout(() => {
                 this.currentWorkingList.unshift({ x, y });
                 this.heartBeat().catch();
-            },         Math.random() * 2 * 1000);
+            }, Math.random() * 2 * 1000);
         }
     }
 
-    private async shouldPlaceGlobalPixel(x: number, y: number): Promise<boolean> {
-        if (x - this.startPoint.x >= this.image.width ||
+    private async shouldPlaceGlobalPixel(
+        x: number,
+        y: number,
+    ): Promise<boolean> {
+        if (
+            x - this.startPoint.x >= this.image.width ||
             y - this.startPoint.y >= this.image.height ||
             x - this.startPoint.x < 0 ||
-            y - this.startPoint.y < 0) {
+            y - this.startPoint.y < 0
+        ) {
             // The pixel is outside of our image, don't care.
             return false;
         }
@@ -205,28 +242,41 @@ export class PixelWorker {
             // don't draw if alpha is 0
             return false;
         }
-        const targetColor = colorConverter.convertActualColor(pixelColorInImage.r,
-                                                              pixelColorInImage.g,
-                                                              pixelColorInImage.b);
-        const pixelNeedsPlacing = this.doesPixelNeedReplacing(x, y, targetColor);
+        const targetColor = colorConverter.convertActualColor(
+            pixelColorInImage.r,
+            pixelColorInImage.g,
+            pixelColorInImage.b,
+        );
+        const pixelNeedsPlacing = this.doesPixelNeedReplacing(
+            x,
+            y,
+            targetColor,
+        );
         return pixelNeedsPlacing;
     }
 
-    private async doesPixelNeedReplacing(x: number, y: number, color: number): Promise<boolean> {
+    private async doesPixelNeedReplacing(
+        x: number,
+        y: number,
+        color: number,
+    ): Promise<boolean> {
         if (this.specialExclusions.isPixelExcluded(x, y)) {
             return false;
         }
         const currentColor = await this.chunkCache.getCoordinateColor(x, y);
         // Pixel current color doesn't match and it is not found in the do not override list.
-        return !colorConverter.areColorsEqual(color, currentColor) &&
+        return (
+            !colorConverter.areColorsEqual(color, currentColor) &&
             this.doNotOverrideColorList.findIndex((c) => {
                 return c === currentColor;
-            }) < 0;
+            }) < 0
+        );
     }
 
-    private getPixelColorFromImage(x: number,
-                                   y: number,
-                                   ): { r: number, g: number, b: number, a: number } {
+    private getPixelColorFromImage(
+        x: number,
+        y: number,
+    ): { r: number; g: number; b: number; a: number } {
         const xInImage = x - this.startPoint.x;
         const yInImage = y - this.startPoint.y;
 
@@ -250,33 +300,51 @@ export class PixelWorker {
 
         while (this.currentWorkingList.length > 0) {
             const currentTargetCoords = this.currentWorkingList.pop();
-            const pixelColorInImage = this.getPixelColorFromImage(currentTargetCoords!.x,
-                                                                  currentTargetCoords!.y);
+            const pixelColorInImage = this.getPixelColorFromImage(
+                currentTargetCoords!.x,
+                currentTargetCoords!.y,
+            );
             if (pixelColorInImage.a === 0) {
                 // don't draw if alpha is 0
                 continue;
             }
 
-            const targetColor = colorConverter.convertActualColor(pixelColorInImage.r,
-                                                                  pixelColorInImage.g,
-                                                                  pixelColorInImage.b);
-            const pixelNeedsPlacing = await this.doesPixelNeedReplacing(currentTargetCoords!.x,
-                                                                        currentTargetCoords!.y,
-                                                                        targetColor);
+            const targetColor = colorConverter.convertActualColor(
+                pixelColorInImage.r,
+                pixelColorInImage.g,
+                pixelColorInImage.b,
+            );
+            const pixelNeedsPlacing = await this.doesPixelNeedReplacing(
+                currentTargetCoords!.x,
+                currentTargetCoords!.y,
+                targetColor,
+            );
 
             if (pixelNeedsPlacing) {
-                const postPixelResult = await this.chunkCache.retryPostPixel(currentTargetCoords!.x,
-                                                                             currentTargetCoords!.y,
-                                                                             targetColor);
-// tslint:disable-next-line: max-line-length
-                logger.log(`Just placed ${targetColor} at ${currentTargetCoords!.x}:${currentTargetCoords!.y}`);
+                const postPixelResult = await this.chunkCache.retryPostPixel(
+                    currentTargetCoords!.x,
+                    currentTargetCoords!.y,
+                    targetColor,
+                );
+                // tslint:disable-next-line: max-line-length
+                logger.log(
+                    `Just placed ${targetColor} at ${currentTargetCoords!.x}:${
+                        currentTargetCoords!.y
+                    }`,
+                );
 
                 if (postPixelResult.waitSeconds > 50) {
-                    const waitingFor = Math.floor(postPixelResult.waitSeconds - Math.random() * 40);
+                    const waitingFor = Math.floor(
+                        postPixelResult.waitSeconds - Math.random() * 40,
+                    );
 
-                    logger.log(`Pixels left to place/check: ${this.currentWorkingList.length}`);
+                    logger.log(
+                        `Pixels left to place/check: ${
+                            this.currentWorkingList.length
+                        }`,
+                    );
                     logger.log(`Waiting for: ${waitingFor} seconds`);
-                    await timeoutFor((waitingFor) * 1000);
+                    await timeoutFor(waitingFor * 1000);
                 }
             }
         }
