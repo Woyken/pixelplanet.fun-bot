@@ -247,6 +247,12 @@ export class PixelWorker {
             pixelColorInImage.g,
             pixelColorInImage.b,
         );
+
+        if (targetColor < 1) {
+            logger.log("Can't parse pixel color... Will be skipped.");
+            return false;
+        }
+
         const pixelNeedsPlacing = this.doesPixelNeedReplacing(
             x,
             y,
@@ -314,6 +320,12 @@ export class PixelWorker {
                 pixelColorInImage.g,
                 pixelColorInImage.b,
             );
+
+            if (targetColor < 1) {
+                logger.log("Can't parse pixel color... Will be skipped.");
+                continue;
+            }
+
             const pixelNeedsPlacing = await this.doesPixelNeedReplacing(
                 currentTargetCoords!.x,
                 currentTargetCoords!.y,
