@@ -111,6 +111,14 @@ export class ChunkCache {
                     );
                     process.exit(1);
                     throw new Error('Stopped by admin');
+                case 422:
+                    // Captcha was requested. No point in continuing.
+                    logger.logError(
+                        // tslint:disable-next-line: max-line-length
+                        "Captcha was requested. Bot won't work anymore. Nothing to do about it, open up the site and play as regular person :(.",
+                    );
+                    process.exit(1);
+                    throw new Error("Captcha requested. Can't continue.");
                 default:
                     throw new Error(
                         `(While placing: ${color} at ${x},${y}) Pixel posting responded with ${
