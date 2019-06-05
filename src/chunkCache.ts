@@ -1,10 +1,24 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import axiosCookiejarSupport from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
-import { Guid } from './guid';
 import logger from './logger';
 import { timeoutFor } from './timeoutHelper';
 import { WebSocketHandler } from './webSocketHandler';
+
+export enum PixelPlaceStatus {
+    Success,
+    TimeoutExceeded,
+    CaptchaRequested,
+    Forbidden,
+    ServerError,
+    UnknownError,
+}
+
+export interface PixelPlaceResult {
+    status: PixelPlaceStatus;
+    message?: string;
+    cooldown?: number;
+}
 
 export class ChunkCache {
     public onPixelUpdate?: (x: number, y: number, color: number) => void;
@@ -15,10 +29,26 @@ export class ChunkCache {
     private cookieJar = new CookieJar();
     private fingerprint: string;
 
-    public constructor() {
+    public timeoutLimit: number = 120;
+
+    private pCurrentTimeout: number = 0;
+    private pTimeoutUpdatedAt: number = 0;
+
+    public get currentTimeout(): number {
+        const diff = (Date.now() - this.pTimeoutUpdatedAt) / 1000;
+        const timeout = this.pCurrentTimeout - diff;
+        return timeout < 0 ? 0 : timeout;
+    }
+
+    public set currentTimeout(value: number) {
+        this.pCurrentTimeout = value;
+        this.pTimeoutUpdatedAt = Date.now();
+    }
+
+    public constructor(fingerprint: string) {
         axiosCookiejarSupport(axios);
 
-        this.fingerprint = Guid.newGuid();
+        this.fingerprint = fingerprint;
 
         this.ws = new WebSocketHandler(this.fingerprint);
         this.ws.onPixelUpdate = this.onUpdatePixelInChunk.bind(this);
@@ -52,31 +82,11 @@ export class ChunkCache {
         );
     }
 
-    public async retryPostPixel(
-        x: number,
-        y: number,
-        color: number,
-    ): Promise<PixelPlanetPixelPostResponse> {
-        return this.postPixel(x, y, color)
-            .then(async (res) => {
-                if (!res.success) {
-                    await timeoutFor((res.waitSeconds - 50) * 1000);
-                    return this.retryPostPixel(x, y, color);
-                }
-                return res;
-            })
-            .catch(async (reason) => {
-                logger.logWarn(reason);
-                await timeoutFor(2000);
-                return this.retryPostPixel(x, y, color);
-            });
-    }
-
     public async postPixel(
         x: number,
         y: number,
         color: number,
-    ): Promise<PixelPlanetPixelPostResponse> {
+    ): Promise<PixelPlaceResult> {
         const bodyData = {
             color,
             x,
@@ -101,43 +111,96 @@ export class ChunkCache {
             url: 'https://pixelplanet.fun/api/pixel',
             withCredentials: true,
         }).catch((error) => {
+            if (!error.response) {
+                const result: PixelPlaceResult = {
+                    status: PixelPlaceStatus.UnknownError,
+                    message: error.message,
+                };
+                return result;
+            }
+            if (error.response.status >= 500) {
+                // Some sort of server error.
+                const result: PixelPlaceResult = {
+                    status: PixelPlaceStatus.ServerError,
+                    message: error.response.statusText,
+                };
+                return result;
+            }
             switch (error.response.status) {
-                case 403:
+                case 403: {
                     // Forbidden: Either admin has blocked your Ip or you ran into protected pixels.
                     // At this point it's better to just stop.
-                    logger.logError(
-                        // tslint:disable-next-line: max-line-length
-                        'You just ran into Admin. He has prevented you from placing pixel. STOPPING NOW!',
-                    );
-                    process.exit(1);
-                    throw new Error('Stopped by admin');
-                case 422:
-                    // Captcha was requested. No point in continuing.
-                    logger.logError(
-                        // tslint:disable-next-line: max-line-length
-                        "Captcha was requested. Bot won't work anymore. Nothing to do about it, open up the site and play as regular person :(.",
-                    );
-                    process.exit(1);
-                    throw new Error("Captcha requested. Can't continue.");
+                    // logger.logError(
+                    // tslint:disable-next-line: max-line-length
+                    //     'You just ran into Admin. He has prevented you from placing pixel. STOPPING NOW!',
+                    // );
+                    // throw new Error('Stopped by admin');
+                    const result: PixelPlaceResult = {
+                        status: PixelPlaceStatus.Forbidden,
+                    };
+                    return result;
+                }
+
+                case 422: {
+                    // Captcha was requested.
+                    // logger.logError(
+                    // tslint:disable-next-line: max-line-length
+                    //     "Captcha was requested. Bot won't work anymore. Nothing to do about it, open up the site and play as regular person :(.",
+                    // );
+                    const result: PixelPlaceResult = {
+                        status: PixelPlaceStatus.CaptchaRequested,
+                    };
+                    return result;
+                }
                 default:
-                    throw new Error(
-                        `(While placing: ${color} at ${x},${y}) Pixel posting responded with ${
-                            error.message
+                    const result: PixelPlaceResult = {
+                        status: PixelPlaceStatus.UnknownError,
+                        // tslint:disable-next-line: max-line-length
+                        message: `(While placing: ${color} at ${x},${y}) Pixel posting responded with ${
+                            error.response.statusText
                         }`,
-                    );
+                    };
+                    return result;
             }
         });
 
+        if (!(resp as AxiosResponse<any>).statusText) {
+            return resp;
+        }
+
         switch (resp.status) {
-            case 200:
+            case 200: {
+                const result = (resp as AxiosResponse<any>)
+                    .data as PixelPlanetPixelPostResponse;
+                this.currentTimeout = result.waitSeconds;
+                if (!result.success) {
+                    // calculate timeout limit
+                    this.timeoutLimit =
+                        result.waitSeconds + result.coolDownSeconds + 4;
+                    this.currentTimeout = result.waitSeconds;
+                    const ret: PixelPlaceResult = {
+                        status: PixelPlaceStatus.TimeoutExceeded,
+                        cooldown: result.coolDownSeconds,
+                    };
+                    return ret;
+                }
                 await this.setPixelColor(x, y, color);
-                return resp.data as PixelPlanetPixelPostResponse;
-            default:
-                throw new Error(
-                    `(While placing: ${color} at ${x},${y}) Pixel posting responded with ${
-                        resp.statusText
+
+                const ret: PixelPlaceResult = {
+                    status: PixelPlaceStatus.Success,
+                };
+                return ret;
+            }
+            default: {
+                const result: PixelPlaceResult = {
+                    status: PixelPlaceStatus.UnknownError,
+                    // tslint:disable-next-line: max-line-length
+                    message: `(While placing: ${color} at ${x},${y}) Pixel posting responded with ${
+                        (resp as AxiosResponse<any>).statusText
                     }`,
-                );
+                };
+                return result;
+            }
         }
     }
 

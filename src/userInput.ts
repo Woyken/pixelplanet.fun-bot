@@ -1,10 +1,10 @@
-import * as readline from 'readline';
 import logger from './logger';
 
 export interface IProgramParameters {
     xLeftMost: number;
     yTopMost: number;
     imgPath: string;
+    fingerprint: string;
     ditherTheImage: boolean;
     constantWatch: boolean;
     doNotOverrideColors: number[];
@@ -15,18 +15,38 @@ class UserInput {
     public currentParameters?: IProgramParameters;
 
     public async gatherProgramParameters(): Promise<void> {
-        if (process.argv[2]) {
+        if (process.argv[3]) {
             return this.parseParametersFromArguments();
         }
-        const rl: readline.Interface = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-        });
 
-        return this.parseParametersFromInput(rl)
-            .then(() => rl.close())
-            .catch(() => rl.close());
+        this.logInputErrorAndExit('Not enough parameters provided');
+    }
 
+    private printUsage() {
+        logger.log(
+            `
+Program usage:
+    npm start -- x y imgPath fingerprint [dither constantWatch customDrawPattern]
+
+    Parameters:
+    x - leftmost pixel of the pixture.
+    y - topmost pixel of the picture.
+    image - path to your image. Can be URL to image.
+    fingerprint - your fingerprint.
+    dither - "y/n" option to dither your image. Often used to compensate for lack of colors in new pallet.
+    constantWatch - after finished painting, bot will continue to watch over the painting and defend against any attacks.
+    customDrawPattern - path to image (same size as input image). Bot drawing will start from "whitest" color and end with "blackest".
+            `,
+        );
+    }
+
+    private logInputErrorAndExit(errorMessage: string) {
+        logger.logError(`
+-----------------------------------------
+Error!
+${errorMessage}`);
+        this.printUsage();
+        process.exit(0);
     }
 
     private parseParametersFromArguments() {
@@ -37,7 +57,8 @@ class UserInput {
             xLeftMost = parseInt(args[0], 10);
             logger.log(`x=${xLeftMost}`);
         } else {
-            throw new Error('X value is not provided');
+            this.logInputErrorAndExit('X value is not provided');
+            return;
         }
 
         let yTopMost: number;
@@ -45,7 +66,8 @@ class UserInput {
             yTopMost = parseInt(args[1], 10);
             logger.log(`y=${yTopMost}`);
         } else {
-            throw new Error('Y value is not provided');
+            this.logInputErrorAndExit('Y value is not provided');
+            return;
         }
 
         let imgPath: string;
@@ -53,32 +75,42 @@ class UserInput {
             imgPath = args[2];
             logger.log(`imgPath=${imgPath}`);
         } else {
-            throw new Error('Path to image is not provided');
+            this.logInputErrorAndExit('Path to image is not provided');
+            return;
+        }
+
+        let fingerprint: string;
+        if (args[3]) {
+            fingerprint = args[3];
+            logger.log(`fingerprint=${fingerprint}`);
+        } else {
+            this.logInputErrorAndExit('Fingerprint is not provided');
+            return;
         }
 
         let ditherTheImage: boolean = false;
-        if (args[3]) {
-            ditherTheImage = args[3].toLowerCase() === 'y';
+        if (args[4]) {
+            ditherTheImage = args[4].toLowerCase() === 'y';
         }
         logger.log(`Dither the image=${ditherTheImage}`);
 
         let constantWatch: boolean = false;
-        if (args[4]) {
-            constantWatch = args[4].toLowerCase() === 'y';
+        if (args[5]) {
+            constantWatch = args[5].toLowerCase() === 'y';
         }
         logger.log(`constantWatch=${constantWatch}`);
 
         const doNotOverrideColors: number[] = [];
-        if (args[5]) {
-            const inColorsStrArr = args[5].split(',');
+        if (args[6]) {
+            const inColorsStrArr = args[6].split(',');
             inColorsStrArr.forEach((el) => {
                 doNotOverrideColors.push(parseInt(el, 10));
             });
         }
 
         let customEdgesMapImagePath: string = '';
-        if (args[6]) {
-            customEdgesMapImagePath = args[6];
+        if (args[7]) {
+            customEdgesMapImagePath = args[7];
             logger.log(`customEdgesMapImagePath=${customEdgesMapImagePath}`);
         }
 
@@ -87,74 +119,11 @@ class UserInput {
             customEdgesMapImagePath,
             ditherTheImage,
             doNotOverrideColors,
+            fingerprint,
             imgPath,
             xLeftMost,
             yTopMost,
         };
-    }
-
-    private async parseParametersFromInput(rl: readline.Interface) {
-        const xLeftMost = await this.readNumber(rl, 'TopLeft x: ');
-
-        const yTopMost = await this.readNumber(rl, 'TopLeft y: ');
-
-        const imgPath = await this.readString(rl, 'Path to an image: ');
-
-        let tmpStr = await this.readString(rl, 'Dither the image? [default=n] (y/n): ');
-        const ditherTheImage: boolean = tmpStr.toLowerCase() === 'y';
-
-        tmpStr = await this.readString(rl,
-// tslint:disable-next-line: max-line-length
-                                       'Continue watching for changes after script finishes (grief fix mode)? [default=n] (y/n): ');
-        const constantWatch: boolean = tmpStr.toLowerCase() === 'y';
-
-        const doNotOverrideColors: number[] = [];
-        tmpStr = await this.readString(rl,
-// tslint:disable-next-line: max-line-length
-                                       'Do not paint over colors list ("script-collab mode"): [default=NONE] (\'2,3,12,23\'): ');
-        const inColorsStrArr = tmpStr.split(',');
-        inColorsStrArr.forEach((el) => {
-            doNotOverrideColors.push(parseInt(el, 10));
-        });
-
-        const customEdgesMapImagePath = await this.readString(rl,
-// tslint:disable-next-line: max-line-length
-                                                              '[Optional] Provide with custom edges drawing map (Greyscale image showing how to draw the image): ');
-
-        this.currentParameters = {
-            constantWatch,
-            customEdgesMapImagePath,
-            ditherTheImage,
-            doNotOverrideColors,
-            imgPath,
-            xLeftMost,
-            yTopMost,
-        };
-    }
-
-    private async readString(rl: readline.Interface, question: string): Promise<string> {
-        const promise = new Promise<string>((resolve, reject) => {
-            rl.question(question, (str: string) => {
-                resolve(str);
-                return;
-            });
-        });
-        return promise;
-    }
-
-    private async readNumber(rl: readline.Interface, question: string): Promise<number> {
-        const promise = new Promise<number>((resolve, reject) => {
-            rl.question(question, (numStr: string) => {
-                const num = parseInt(numStr, 10);
-                if (isNaN(num)) {
-                    reject('invalid number');
-                    return;
-                }
-                resolve(num);
-                return;
-            });
-        });
-        return promise;
     }
 }
 

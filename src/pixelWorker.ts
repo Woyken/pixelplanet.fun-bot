@@ -1,9 +1,9 @@
 import { PNG } from 'pngjs';
-import { ChunkCache } from './chunkCache';
+import { ChunkCache, PixelPlaceStatus } from './chunkCache';
 import colorConverter from './colorConverter';
 import { ImageProcessor } from './imageProcessor';
 import logger from './logger';
-import { timeoutFor } from './timeoutHelper';
+import { timeoutFor, waitForAnyKey } from './timeoutHelper';
 import { SpecialExclusionHandler } from './specialExclusionHandler';
 
 async function yieldingLoop(
@@ -49,6 +49,7 @@ export class PixelWorker {
         startPoint: { x: number; y: number },
         doNotOverrideColorList: number[],
         customEdgesMap: string,
+        fingerprint: string,
     ) {
         const imgProcessor = await ImageProcessor.create(image, customEdgesMap);
         const specialExclusion = await SpecialExclusionHandler.create();
@@ -58,6 +59,7 @@ export class PixelWorker {
             image,
             startPoint,
             doNotOverrideColorList,
+            fingerprint,
         );
     }
 
@@ -79,8 +81,9 @@ export class PixelWorker {
         image: PNG,
         startPoint: { x: number; y: number },
         doNotOverrideColorList: number[],
+        fingerprint: string,
     ) {
-        this.chunkCache = new ChunkCache();
+        this.chunkCache = new ChunkCache(fingerprint);
         this.specialExclusions = specialExclusion;
         this.imgProcessor = imgProcessor;
         this.image = image;
@@ -326,39 +329,11 @@ export class PixelWorker {
                 continue;
             }
 
-            const pixelNeedsPlacing = await this.doesPixelNeedReplacing(
+            await this.placeThePixel(
                 currentTargetCoords!.x,
                 currentTargetCoords!.y,
                 targetColor,
             );
-
-            if (pixelNeedsPlacing) {
-                const postPixelResult = await this.chunkCache.retryPostPixel(
-                    currentTargetCoords!.x,
-                    currentTargetCoords!.y,
-                    targetColor,
-                );
-                // tslint:disable-next-line: max-line-length
-                logger.log(
-                    `Just placed ${targetColor} at ${currentTargetCoords!.x}:${
-                        currentTargetCoords!.y
-                    }`,
-                );
-
-                if (postPixelResult.waitSeconds > 50) {
-                    const waitingFor = Math.floor(
-                        postPixelResult.waitSeconds - Math.random() * 40,
-                    );
-
-                    logger.log(
-                        `Pixels left to place/check: ${
-                            this.currentWorkingList.length
-                        }`,
-                    );
-                    logger.log(`Waiting for: ${waitingFor} seconds`);
-                    await timeoutFor(waitingFor * 1000);
-                }
-            }
         }
 
         // list is empty, job is done.
@@ -367,5 +342,96 @@ export class PixelWorker {
         }
 
         this.working = false;
+    }
+
+    private async placeThePixel(x: number, y: number, color: number) {
+        const pixelNeedsPlacing = await this.doesPixelNeedReplacing(
+            x,
+            y,
+            color,
+        );
+
+        if (pixelNeedsPlacing) {
+            const postPixelResult = await this.chunkCache.postPixel(
+                x,
+                y,
+                color,
+            );
+            switch (postPixelResult.status) {
+                case PixelPlaceStatus.CaptchaRequested: {
+                    logger.logWarn(
+                        // tslint:disable-next-line: max-line-length
+                        'Capthca was requested. Go to your browser, place a pixel and complete the captcha.',
+                    );
+
+                    console.log('Press any key to continue');
+                    await waitForAnyKey();
+                    // retry placing.
+                    await this.placeThePixel(x, y, color);
+                    break;
+                }
+                case PixelPlaceStatus.Forbidden: {
+                    logger.logError(
+                        // tslint:disable-next-line: max-line-length
+                        'You just ran into Admin. He has prevented you from placing pixel. STOPPING NOW!',
+                    );
+                    process.exit(0);
+                    throw new Error('Stopped by admin');
+                }
+                case PixelPlaceStatus.ServerError: {
+                    logger.logWarn(
+                        `Server error has occured. ${postPixelResult.message}`,
+                    );
+                    await timeoutFor(3000);
+                    // retry placing.
+                    await this.placeThePixel(x, y, color);
+                    break;
+                }
+                case PixelPlaceStatus.TimeoutExceeded: {
+                    logger.log('Timeout limit reached.');
+                    logger.log('Waiting for: 10 seconds');
+                    await timeoutFor(10000);
+                    // retry placing.
+                    await this.placeThePixel(x, y, color);
+                    break;
+                }
+                case PixelPlaceStatus.UnknownError: {
+                    logger.logError(
+                        `Unknow error has occured! \n${
+                            postPixelResult.message
+                        }`,
+                    );
+                    await timeoutFor(3000);
+                    // retry placing.
+                    await this.placeThePixel(x, y, color);
+                    break;
+                }
+                case PixelPlaceStatus.Success: {
+                    logger.log(`Just placed ${color} at ${x}:${y}`);
+
+                    if (
+                        this.chunkCache.currentTimeout >
+                        this.chunkCache.timeoutLimit - 10
+                    ) {
+                        const waitingFor = Math.floor(
+                            this.chunkCache.currentTimeout -
+                                Math.random() *
+                                    (this.chunkCache.timeoutLimit - 20),
+                        );
+
+                        logger.log(
+                            `Pixels left to place/check: ${
+                                this.currentWorkingList.length
+                            }`,
+                        );
+                        logger.log(`Waiting for: ${waitingFor} seconds`);
+                        await timeoutFor(waitingFor * 1000);
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
     }
 }

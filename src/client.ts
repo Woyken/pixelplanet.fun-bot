@@ -149,6 +149,7 @@ async function startProgram(params: IProgramParameters, png: PNG) {
         { x: params.xLeftMost, y: params.yTopMost },
         params.doNotOverrideColors,
         params.customEdgesMapImagePath,
+        params.fingerprint,
     );
 
     logger.log("Ok, let's go!");
