@@ -1,4 +1,5 @@
 import logger from './logger';
+import { Guid } from './guid';
 
 export interface IProgramParameters {
     xLeftMost: number;
@@ -56,6 +57,12 @@ ${errorMessage}`);
         if (args[0]) {
             xLeftMost = parseInt(args[0], 10);
             logger.log(`x=${xLeftMost}`);
+            if (xLeftMost === NaN) {
+                this.logInputErrorAndExit(
+                    'X value is not valid. Make sure your start command is correct.',
+                );
+                return;
+            }
         } else {
             this.logInputErrorAndExit('X value is not provided');
             return;
@@ -65,6 +72,12 @@ ${errorMessage}`);
         if (args[1]) {
             yTopMost = parseInt(args[1], 10);
             logger.log(`y=${yTopMost}`);
+            if (yTopMost === NaN) {
+                this.logInputErrorAndExit(
+                    'Y value is not valid. Make sure your start command is correct.',
+                );
+                return;
+            }
         } else {
             this.logInputErrorAndExit('Y value is not provided');
             return;
@@ -83,6 +96,12 @@ ${errorMessage}`);
         if (args[3]) {
             fingerprint = args[3];
             logger.log(`fingerprint=${fingerprint}`);
+            if (!Guid.validateGuid(fingerprint)) {
+                this.logInputErrorAndExit(
+                    'Fingerprint is invalid. Make sure your start command is correct.',
+                );
+                return;
+            }
         } else {
             this.logInputErrorAndExit('Fingerprint is not provided');
             return;
