@@ -277,7 +277,7 @@ export class ChunkCache {
             },
             jar: this.cookieJar,
             method: 'get',
-            url: `https://pixelplanet.fun/chunks/${x}/${y}.bin`,
+            url: `https://pixelplanet.fun/chunks/${x}/${y}.bmp`,
             withCredentials: true,
         }).catch((error) => {
             switch (error.response.status) {
