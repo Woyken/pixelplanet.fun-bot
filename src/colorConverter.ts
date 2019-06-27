@@ -60,7 +60,7 @@ class ColorConverter {
         switch (color) {
         case 0:
 // tslint:disable-next-line: no-parameter-reassignment
-            color = 19;
+            color = 25;
             break;
         case 1:
 // tslint:disable-next-line: no-parameter-reassignment
@@ -76,7 +76,7 @@ class ColorConverter {
             return true;
         }
         // default ocean color
-        if ((c1 === 0 && c2 === 19) || c1 === 19 && c2 === 0) {
+        if ((c1 === 0 && c2 === 25) || c1 === 25 && c2 === 0) {
             return true;
         }
         // default ground color
