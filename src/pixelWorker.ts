@@ -5,6 +5,7 @@ import { ImageProcessor } from './imageProcessor';
 import logger from './logger';
 import { timeoutFor, waitForAnyKey } from './timeoutHelper';
 import { SpecialExclusionHandler } from './specialExclusionHandler';
+import alert from 'alert-node'
 
 async function yieldingLoop(
     count: number,
@@ -363,6 +364,11 @@ export class PixelWorker {
                         // tslint:disable-next-line: max-line-length
                         'Capthca was requested. Go to your browser, place a pixel and complete the captcha.',
                     );
+
+                    alert(
+                        // tslint:disable-next-line: max-line-length
+                        'Capthca was requested. Go to your browser, place a pixel and complete the captcha. Then press any key in the console.'
+                        );
 
                     console.log('Press any key to continue');
                     await waitForAnyKey();

@@ -20,6 +20,7 @@
         "@types/shelljs": "^0.8.5",
         "@types/ws": "^6.0.1",
         "adm-zip": "^0.4.13",
+        "alert-node": "^2.0.1",
         "axios": "^0.18.0",
         "axios-cookiejar-support": "^0.4.2",
         "fs-extra": "^7.0.1",
