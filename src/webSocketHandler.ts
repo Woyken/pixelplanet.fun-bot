@@ -67,6 +67,11 @@ export class WebSocketHandler {
     }
 
     private onMessage(ev: { data: any; type: string; target: ws; }) {
+        if (!ev.data || typeof ev.data === 'string' || ev.data.byteLength === undefined) {
+            // don't care about chat messages.
+            return;
+        }
+        
         const buffer = ev.data as Buffer;
         if (buffer.byteLength === 0) {
             return;
