@@ -48,6 +48,11 @@ export class ChunkCache {
     public constructor(fingerprint: string) {
         axiosCookiejarSupport(axios);
 
+        this.cookieJar.setCookieSync(
+            `__cfduid=${fingerprint}`,
+            'https://pixelplanet.fun',
+            { secure: true },
+        );
         this.fingerprint = fingerprint;
 
         this.ws = new WebSocketHandler(this.fingerprint);
@@ -92,7 +97,6 @@ export class ChunkCache {
             x,
             y,
             a: x + y - 8,
-            fingerprint: this.fingerprint,
             token: null,
         };
 

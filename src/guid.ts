@@ -11,7 +11,9 @@ export class Guid {
 
     public static validateGuid(guid: string): boolean {
         const matched = guid.match(
-            /^[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}$/i,
+            // Change in PixelPlanet, fingerprint no longer follows guid standart. Seem to be longer
+            // When validating, removed $ from the end. For now, allow longer values than before.
+            /^[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}/i,
         );
         return matched !== null;
     }
