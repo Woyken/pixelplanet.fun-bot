@@ -71,10 +71,13 @@ Only first 3 parameters are required.
 
 1. Open up pixelplanet.fun .
 2. Press F12. This will open up "Developer tools".
-3. Open "Network" tab.
-4. There should appear new entry called "pixel". Click on that line.
-5. Copy your fingerprint.
+3. Find your cookies:
 
-    5.1. If you are on Chrome, just scroll down in "Headers" tab until you see "fingerprint". That's it copy it.
+    3.1. On chrome. Application Tab. Storage - > Cookies - > "<https://pixelplanet.fun".>
 
-    5.2. If you are on Firefox, click "Params" tab and copy the fingerprint.
+    3.2. On firefox. Storage Tab. Cookies - > "<https://pixelplanet.fun>".
+
+4. Find "__cfduid".
+5. Double click and copy the value, this is your "fingerprint".
+
+![Image on finding fingerprint in saved cookies](READMEImages/ChromeDevTools_FingerprintCookie.png?raw=true "Chrome dev tools - Fingerprint cookie")
