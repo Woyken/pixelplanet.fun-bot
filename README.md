@@ -6,8 +6,6 @@ I have neither motivation nor time to update this project.
 
 Feel free to fork it and make something nice out of it.
 
-Or go and use other projects like <https://github.com/Topinambur223606/PixelPlanetTools>
-
 ## BEFORE WE START (Disclaimer)
 
 DO NOT ABUSE the bot.
